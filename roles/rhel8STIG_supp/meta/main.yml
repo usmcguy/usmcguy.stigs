@@ -10,8 +10,3 @@ galaxy_info:
       versions:
         - "8"
   galaxy_tags: []
-dependencies:
-  - ansible.posix
-  - community.crypto
-  - community.general
-repository: https://github.com/usmcguy/RHEL_8_STIG_Ansible
