@@ -1,7 +1,8 @@
 galaxy_info:
-  author: Dave King (USMCguy@gmail.com)
+  author: Dave King (USMCguy@gmail.com) & Glenn Mora Rangel
   description: RHEL 8 Supplemental STIG Role
-  company: Defense Health Agency
+  namespace: "usmcguy"
+  role_name: "rhel8stig_supp"
   license: Apache-2.0
   min_ansible_version: "2.15"
   platforms:
@@ -9,4 +10,8 @@ galaxy_info:
       versions:
         - "8"
   galaxy_tags: []
-dependencies: []
+dependencies:
+  - ansible.posix
+  - community.crypto
+  - community.general
+repository: https://github.com/usmcguy/RHEL_8_STIG_Ansible
