@@ -1,2 +1,3 @@
 .ansible/
 .config/
+roles/rhel8STIG_supp/callback_plugins/__pycache__/
