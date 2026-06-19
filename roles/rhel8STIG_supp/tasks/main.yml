@@ -109,47 +109,42 @@
     msg: "{{ system_group_list | map(attribute='key') | list | join(', ') }}"
 
 # V-230222 RHEL-08-010010
-- name: Remove old repo file
-  ansible.builtin.file:
-    path: /etc/yum.repos.d/ansible.repo
-    state: absent
+#- name: STIGrule_230222__dnf_repoinfo
+#  ansible.builtin.command:
+#    cmd: dnf repoinfo
+#  register: dnf_repoinfo
+#  changed_when: false
+#  when: rhel8STIG_stigrule_230222_Manage
 
-- name: STIGrule_230222__dnf_repoinfo
-  ansible.builtin.command:
-    cmd: dnf repoinfo
-  register: dnf_repoinfo
-  changed_when: false
-  when: rhel8STIG_stigrule_230222_Manage
+# - name: STIGrule_230222__add_repository_rhel8_baseos
+#  ansible.builtin.yum_repository:
+#    name: rhel8-baseos
+#    description: RHEL8 BaseOS (RPMs)
+#    file: "{{ rhel8STIG_stigrule_230222_repo_file }}"
+#    baseurl: "{{ rhel8STIG_stigrule_230222__baseos_Baseurl }}"
+#    gpgcheck: true
+#    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+#    enabled: true
+#    mode: '0644'
+#  when:
+#    - rhel8STIG_stigrule_230222_Manage
+#    - rhel8STIG_stigrule_230222__baseos_Baseurl is defined
+#    - rhel8STIG_stigrule_230222__baseos_Baseurl not in dnf_repoinfo.stdout
 
-- name: STIGrule_230222__add_repository_rhel8_baseos
-  ansible.builtin.yum_repository:
-    name: rhel8-baseos
-    description: RHEL8 BaseOS (RPMs)
-    file: "{{ rhel8STIG_stigrule_230222_repo_file }}"
-    baseurl: "{{ rhel8STIG_stigrule_230222__baseos_Baseurl }}"
-    gpgcheck: true
-    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-    enabled: true
-    mode: '0644'
-  when:
-    - rhel8STIG_stigrule_230222_Manage
-    - rhel8STIG_stigrule_230222__baseos_Baseurl is defined
-    - rhel8STIG_stigrule_230222__baseos_Baseurl not in dnf_repoinfo.stdout
-
-- name: STIGrule_230222__add_repository_rhel8_appstream
-  ansible.builtin.yum_repository:
-    name: rhel8-appstream
-    description: RHEL8 AppStream (RPMs)
-    file: "{{ rhel8STIG_stigrule_230222_repo_file }}"
-    baseurl: "{{ rhel8STIG_stigrule_230222__appstream_Baseurl }}"
-    gpgcheck: true
-    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-    enabled: true
-    mode: '0644'
-  when:
-    - rhel8STIG_stigrule_230222_Manage
-    - rhel8STIG_stigrule_230222__appstream_Baseurl is defined
-    - rhel8STIG_stigrule_230222__appstream_Baseurl not in dnf_repoinfo.stdout
+# - name: STIGrule_230222__add_repository_rhel8_appstream
+#  ansible.builtin.yum_repository:
+#    name: rhel8-appstream
+#    description: RHEL8 AppStream (RPMs)
+#    file: "{{ rhel8STIG_stigrule_230222_repo_file }}"
+#    baseurl: "{{ rhel8STIG_stigrule_230222__appstream_Baseurl }}"
+#    gpgcheck: true
+#    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+#    enabled: true
+#    mode: '0644'
+#  when:
+#    - rhel8STIG_stigrule_230222_Manage
+#    - rhel8STIG_stigrule_230222__appstream_Baseurl is defined
+#    - rhel8STIG_stigrule_230222__appstream_Baseurl not in dnf_repoinfo.stdout
 
 - name: STIGrule_230222__dnf_update
   ansible.builtin.dnf:
