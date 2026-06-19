@@ -16,10 +16,10 @@ rhel8STIG_stigrule_login_FailInterval: 900
 rhel8STIG_stigrule_login_UnlockTime: 0
 # V-230222 RHEL-08-010010
 rhel8STIG_stigrule_230222_Manage: true
-rhel8STIG_stigrule_230222__baseos_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/baseos/os
-rhel8STIG_stigrule_230222__appstream_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/appstream/os
+#rhel8STIG_stigrule_230222__baseos_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/baseos/os
+#rhel8STIG_stigrule_230222__appstream_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/appstream/os
 rhel8STIG_stigrule_230222__dnf_State: latest
-rhel8STIG_stigrule_230222_repo_file: ansible
+#rhel8STIG_stigrule_230222_repo_file: ansible
 # V-230223
 rhel8STIG_stigrule_230223_Manage: true
 # V-230229 RHEL-08-010090
