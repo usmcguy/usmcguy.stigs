@@ -479,14 +479,20 @@
     state: present
 
 # V-230234
+- name: Check if /boot/efi/EFI/redhat/user.cfg present
+  ansible.builtin.stat:
+    path: /boot/efi/EFI/redhat/user.cfg
+  register: user_cfg_stat
+
 - name: Check for grub2_password
-  ansible.builtin.command: grep -iw grub2_password /boot/efi/EFI/redhat/user.cfg
+  ansible.builtin.command: grep -iw grub2_password /boot/efi/EFI/redhat/user.cfg || true
   register: grub_pass_check_uefi
   changed_when: false
   no_log: true
   when:
     - rhel8STIG_stigrule_230234_Manage
     - boot_mode == "UEFI"
+    - user_cfg_stat.stat.exists
 
 - name: STIGrule_230234__set_grub_pass
   ansible.builtin.expect:
@@ -498,7 +504,9 @@
   when:
     - rhel8STIG_stigrule_230234_Manage
     - boot_mode == "UEFI"
-    - grub_pass_check_uefi.stderr  | length > 0
+    - >
+      not user_cfg_stat.stat.exists or
+      grub_pass_check_uefi.stdout  | length == 0
 
 # V-230235
 - name: Check for grub2_password
