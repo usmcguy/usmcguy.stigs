@@ -1,1 +1,1 @@
-ansible-playbook -v -b -i /dev/null site.yml
+ansible-playbook -v -b -i inventory site.yml
