@@ -1,3 +1,13 @@
+- name: Ensure desired python3 installed # recommend python3.12+
+  ansible.builtin.dnf:
+    name: "{{ rhel8STIG_stigrule_python_version }}"
+    state: installed
+    update_cache: true
+    skip_broken: true
+    lock_timeout: 60
+    update_only: true
+  when: rhel8STIG_stigrule_230222_Manage
+
 - name: Check for EFI directory
   ansible.builtin.stat:
     path: /sys/firmware/efi
@@ -285,7 +295,7 @@
     content: "{{ item }}"
   loop: "{{ dod_bundle_pems }}"
   register: dod_ca_infos
-  no_log: true
+  #no_log: true
   when: rhel8STIG_stigrule_230229_Manage
 
 - name: STIGrule_230229__sssd_ca_db_stat

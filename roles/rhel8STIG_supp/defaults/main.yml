@@ -1,4 +1,5 @@
 # Global vars
+rhel8STIG_stigrule_python_version: python3.12 # some tasks may fail with a lower version
 rhel8STIG_allow_system_reboot: true
 rhel8STIG_stigrule_authselect_features:
   - with-faillock
