@@ -5,8 +5,13 @@
     update_cache: true
     skip_broken: true
     lock_timeout: 60
-    update_only: true
-  when: rhel8STIG_stigrule_230222_Manage
+
+- name: Ensure desired python3 selected
+  community.general.alternatives:
+    name: python3
+    path: /usr/bin/{{ rhel8STIG_stigrule_python_version }}
+    link: /usr/bin/python3
+    state: selected
 
 - name: Check for EFI directory
   ansible.builtin.stat:
