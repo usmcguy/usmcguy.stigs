@@ -484,12 +484,8 @@
     path: /boot/efi/EFI/redhat/user.cfg
   register: user_cfg_stat
 
-- name: DEBUG
-  debug:
-    var: user_cfg_stat
-
 - name: Check for UEFI grub2_password
-  ansible.builtin.shell: 
+  ansible.builtin.shell:
     cmd: |
       set -o pipefail
       grep -iw grub2_password /boot/efi/EFI/redhat/user.cfg || true
@@ -1105,6 +1101,7 @@
     label: "{{ item.0.file }} - {{ item.1 }}"
   when:
     - rhel8STIG_stigrule_230274_Manage
+    - parsed_sssd is defined
   notify: sssd_restart
 
 - name: STIGrule_230274__create_certificate_verification
