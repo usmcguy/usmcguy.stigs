@@ -1136,7 +1136,7 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      grub2-editenv list | grep -E 'page_poison(=|[[:space:]])'
+      grub2-editenv list | grep -E 'page_poison(=|[[:space:]])' || true
     executable: /bin/bash
   register: grub2_poison_check
   changed_when: false
@@ -1147,7 +1147,7 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      grep -E 'page_poison(=|[[:space:]])' /etc/default/grub
+      grep -E 'page_poison(=|[[:space:]])' /etc/default/grub || true
     executable: /bin/bash
   register: grub_poison_check
   changed_when: false
@@ -1303,8 +1303,10 @@
     - shosts_equiv_files.stdout_lines | length > 0
 
 - name: stigrule_230284__find_shosts_files
-  ansible.builtin.command:
-    cmd: find / -name '*.shosts' -type f -exec ls -al {} + -exec rm -f {} + || true
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      find / -name '*.shosts' -type f -exec ls -al {} + -exec rm -f {} + || true
   register: rhel8STIG_stigrule_230284_shosts_find_cmd
   changed_when: rhel8STIG_stigrule_230284_shosts_find_cmd.stdout_lines | length > 0
   when: rhel8STIG_stigrule_230284_Manage
