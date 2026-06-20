@@ -484,8 +484,15 @@
     path: /boot/efi/EFI/redhat/user.cfg
   register: user_cfg_stat
 
-- name: Check for grub2_password
-  ansible.builtin.command: grep -iw grub2_password /boot/efi/EFI/redhat/user.cfg || true
+- name: DEBUG
+  debug:
+    var: user_cfg_stat
+
+- name: Check for UEFI grub2_password
+  ansible.builtin.shell: 
+    cmd: |
+      set -o pipefail
+      grep -iw grub2_password /boot/efi/EFI/redhat/user.cfg || true
   register: grub_pass_check_uefi
   changed_when: false
   no_log: true
@@ -506,11 +513,14 @@
     - boot_mode == "UEFI"
     - >
       not user_cfg_stat.stat.exists or
-      grub_pass_check_uefi.stdout  | length == 0
+      grub_pass_check_uefi.stdout | length == 0
 
 # V-230235
-- name: Check for grub2_password
-  ansible.builtin.command: grep -iw grub2_password /boot/grub2/user.cfg
+- name: Check for BIOS grub2_password
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep -iw grub2_password /boot/grub2/user.cfg || true
   register: grub_pass_check_bios
   changed_when: false
   no_log: true
@@ -528,7 +538,7 @@
   when:
     - rhel8STIG_stigrule_230235_Manage
     - boot_mode == "BIOS"
-    - grub_pass_check_bios.stderr  | length > 0
+    - grub_pass_check_bios.stdout | length == 0
 
 # V-230237 RHEL-08-010160
 - name: stigrule_230237__ensure_sha512_for_pam_unix_in_password_auth
