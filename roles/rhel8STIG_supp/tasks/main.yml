@@ -1349,7 +1349,10 @@
 
 # V-230299 RHEL-08-010570
 - name: STIGrule_230299__home_nosuid_etc_fstab
-  ansible.builtin.command: grep '{{ default_home_path }}' /etc/fstab || true
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep '{{ default_home_path }}' /etc/fstab || true
   register: fstab_home_entry
   changed_when: false
   when:
