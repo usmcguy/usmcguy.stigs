@@ -1449,7 +1449,7 @@
     rhel8STIG_stigrule_230301_target_mounts: >-
       {{
         rhel8STIG_stigrule_230301_mounts_missing_nodev.stdout_lines
-        | select('length')
+        | reject('equalto', '')
         | list
       }}
   when: rhel8STIG_stigrule_230301_Manage
