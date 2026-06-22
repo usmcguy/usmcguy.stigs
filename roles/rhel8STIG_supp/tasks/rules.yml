@@ -154,7 +154,7 @@
     skip_broken: true
     lock_timeout: 60
     update_only: true
-  when: rhel8STIG_stigrule_230222_Manage
+  when: false #rhel8STIG_stigrule_230222_Manage
 
 # V-230223 RHEL-08-010020
 - name: Get current system-wide cryptographic policy
@@ -262,13 +262,15 @@
     creates: "{{ dod_work_dir }}/dod_bundle.pem"
   register: pkcs7_convert
   changed_when: pkcs7_convert.rc == 0 and ('skipped' not in pkcs7_convert.stdout)
-  when: rhel8STIG_stigrule_230229_Manage
+  #when: rhel8STIG_stigrule_230229_Manage
+  when: false
 
 - name: STIGrule_230229__read_dod_bundle_pem
   ansible.builtin.slurp:
     path: "{{ dod_work_dir }}/dod_bundle.pem"
   register: dod_bundle_raw
-  when: rhel8STIG_stigrule_230229_Manage
+  #when: rhel8STIG_stigrule_230229_Manage
+  when: false
   no_log: true
 
 - name: STIGrule_230229__split_dod_bundle_pem
@@ -277,7 +279,8 @@
       {{ (dod_bundle_raw.content | b64decode)
           | regex_findall('-----BEGIN CERTIFICATE-----(?:.|\n)+?-----END CERTIFICATE-----',
                           multiline=True) }}
-  when: rhel8STIG_stigrule_230229_Manage
+  #when: rhel8STIG_stigrule_230229_Manage
+  when: false
   no_log: true
 
 - name: STIGrule_230229__read_cert_info
@@ -286,7 +289,8 @@
   loop: "{{ dod_bundle_pems }}"
   register: dod_ca_infos
   no_log: true
-  when: rhel8STIG_stigrule_230229_Manage
+  #when: rhel8STIG_stigrule_230229_Manage
+  when: false
   delegate_to: localhost
 
 - name: STIGrule_230229__sssd_ca_db_stat
@@ -295,7 +299,8 @@
     get_checksum: false
     get_mime: false
   register: sssd_ca_db_stat
-  when: rhel8STIG_stigrule_230229_Manage
+  #when: rhel8STIG_stigrule_230229_Manage
+  when: false
 
 - name: STIGrule_230229__create_empty_sssd_ca_db
   ansible.builtin.copy:
@@ -305,6 +310,7 @@
     owner: root
     group: sssd
   when:
+    - false
     - rhel8STIG_stigrule_230229_Manage
     - not sssd_ca_db_stat.stat.exists
 
@@ -315,6 +321,7 @@
   become: true
   no_log: true
   when:
+    - false
     - rhel8STIG_stigrule_230229_Manage
     - sssd_ca_db_stat.stat.exists
 
@@ -326,20 +333,25 @@
         multiline=True) }}
   no_log: true
   when:
+    - false
     - rhel8STIG_stigrule_230229_Manage
     - sssd_ca_db_stat.stat.exists
+
 
 - name: STIGrule_230229__create_empty_db_pems
   ansible.builtin.set_fact:
     sssd_db_pems: []
   when:
+    - false
     - rhel8STIG_stigrule_230229_Manage
     - not sssd_ca_db_stat.stat.exists
+
 
 - name: STIGrule_230229__initialize_missing_root_cas
   ansible.builtin.set_fact:
     missing_root_cas: []
-  when: rhel8STIG_stigrule_230229_Manage
+  #when: rhel8STIG_stigrule_230229_Manage
+  when: false
 
 - name: STIGrule_230229__id_missing_cas
   ansible.builtin.set_fact:
@@ -361,17 +373,19 @@
           } ] }}
   loop: "{{ dod_ca_infos.results }}"
   no_log: true
-  when: >
-    rhel8STIG_stigrule_230229_Manage and
-    (not item.expired | default(true)) and
-    (item.subject is defined) and
-    (item.subject.commonName is defined) and
-    (
-      sssd_db_pems
-      | select('equalto', item.item)
-      | list
-      | length == 0
-    )
+  when:
+    - false
+    - rhel8STIG_stigrule_230229_Manage
+    - >
+      (not item.expired | default(true)) and
+      (item.subject is defined) and
+      (item.subject.commonName is defined) and
+      (
+        sssd_db_pems
+        | select('equalto', item.item)
+        | list
+        | length == 0
+      )
 
 - name: STIGrule_230229__create_block_string
   ansible.builtin.set_fact:
@@ -384,6 +398,7 @@
     label: "{{ item.name }}"
   no_log: true
   when:
+    - false
     - rhel8STIG_stigrule_230229_Manage
     - missing_root_cas | length > 0
 
@@ -392,6 +407,7 @@
     missing_root_cas_concat: "{{ missing_root_cas_block | join('') }}"
   no_log: true
   when:
+    - false
     - rhel8STIG_stigrule_230229_Manage
     - missing_root_cas | length > 0
 
@@ -405,6 +421,7 @@
   become: true
   notify: sssd_restart
   when:
+    - false
     - rhel8STIG_stigrule_230229_Manage
     - sssd_ca_db_stat.stat.exists
     - missing_root_cas | length > 0
@@ -968,6 +985,7 @@
   loop_control:
     label: "{{ item.item.path }}"
   when:
+    - false
     - rhel8STIG_stigrule_230264_Manage
     - repo_sections_cmd.results | length > 0
 
@@ -985,6 +1003,7 @@
     group: root
   loop: "{{ repo_path_section_dicts }}"
   when:
+    - false
     - rhel8STIG_stigrule_230264_Manage
     - repo_path_section_dicts is defined
 
@@ -1372,13 +1391,26 @@
     - rhel8STIG_stigrule_230299_Manage
     - fstab_home_entry.rc == 0
 
+- name: DEBUG
+  debug:
+    var: fstab_home_fields
+
 - name: STIGrule_230299__add_nosuid_home_etc_fstab
   ansible.builtin.lineinfile:
     path: /etc/fstab
-    regexp: '^([^#].+\s+{{ default_home_path }}\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
+    regexp: '^(\S+\s+{{ default_home_path }}\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
+    line: >-
+      \g<1>{{
+        (
+          (
+            "\2".replace(" ", "").split(",")
+          ) +
+          (
+            ['nosuid'] if 'nosuid' not in "\2".replace(" ", "").split(",") else []
+          )
+        ) | join(",")
+      }}\3
     backrefs: true
-    # backup: true
   when:
     - rhel8STIG_stigrule_230299_Manage
     - fstab_home_entry.rc == 0
@@ -2070,6 +2102,10 @@
     - rhel8STIG_stigrule_230316_Manage
     - nm_manages_dns
 
+- name: Define interface to apply DNS settings
+  ansible.builtin.set_fact:
+    dns_interface: rhel8STIG_stigrule_230316_dns_interface  "{{ rhel8STIG_stigrule_230316_dns_interface | default(nm_connections[0].name, true) }}"
+
 - name: STIGrule_230316__read_etc_resolv.conf
   ansible.builtin.slurp:
     src: /etc/resolv.conf
@@ -2100,9 +2136,9 @@
     - rhel8STIG_stigrule_230316_Manage
     - dns_client
 
-- name: STIGrule_230316__set_dns_with_nmcli_on_first_interface
+- name: STIGrule_230316__set_dns_with_nmcli_on_defined_interface
   ansible.builtin.command:
-    cmd: nmcli con mod {{ nm_connections[0].name }} ipv4.dns "{{ rhel8STIG_stigrule_230316_nameservers | join(' ') }}"
+    cmd: nmcli con mod {{ dns_interface }} ipv4.dns "{{ rhel8STIG_stigrule_230316_nameservers | join(' ') }}"
   register: nmcli_dns_result
   changed_when: nmcli_dns_result.rc == 0
   when:
@@ -2113,9 +2149,9 @@
   notify: NetworkManager_restart
   check_mode: true
 
-- name: STIGrule_230316__ignore_dns_from_dhcp_on_first_interface
+- name: STIGrule_230316__ignore_dns_from_dhcp_on_defined_interface
   ansible.builtin.command:
-    cmd: nmcli con mod "{{ nm_connections[0].name }}" ipv4.ignore-auto-dns yes
+    cmd: nmcli con mod "{{ dns_interface }}" ipv4.ignore-auto-dns yes
   register: nmcli_dhcp_result
   changed_when: nmcli_dhcp_result.rc == 0
   when:
@@ -2125,9 +2161,9 @@
     - nm_connections[0].ignore_auto_dns == "no"
   notify: NetworkManager_restart
 
-- name: STIGrule_230316__get_dns_from_dhcp_on_first_interface
+- name: STIGrule_230316__get_dns_from_dhcp_on_defined_interface
   ansible.builtin.command:
-    cmd: nmcli con mod "{{ nm_connections[0].name }}" ipv4.ignore-auto-dns no
+    cmd: nmcli con mod "{{ dns_interface }}" ipv4.ignore-auto-dns no
   register: nmcli_dhcp_result
   changed_when: nmcli_dhcp_result.rc == 0
   when:
