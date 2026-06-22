@@ -162,6 +162,7 @@ rhel8STIG_stigrule_230312_Manage: true
 rhel8STIG_stigrule_230316_Manage: true
 rhel8STIG_stigrule_230316_nameservers: []
 rhel8STIG_stigrule_230316_cloud: false
+rhel8STIG_stigrule_230316_dns_interface: "" # Use value from output of 'nmcli' cmd, next to the word 'connected' Example: ens18 or enp6s18. Default is 1st non-loopback interface found.
 rhel8STIG_stigrule_230316_ignore_dhcp_dns: false
 # rhel8STIG_stigrule_230316_ns1: ns1.ahi.glb.inf.dns.mil
 # rhel8STIG_stigrule_230316_ns2: ns2.ahi.glb.inf.dns.mil
