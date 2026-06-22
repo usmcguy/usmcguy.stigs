@@ -2100,26 +2100,6 @@
     - rhel8STIG_stigrule_230316_Manage
     - dns_client
 
-- name: STIGrule_230316__validate_nameserver_count
-  ansible.builtin.fail:
-    msg: rhel8STIG_stigrule_230316_nameservers variable must contain 2 or more IP addresses
-  when:
-    - rhel8STIG_stigrule_230316_Manage
-    - dns_client
-    - not rhel8STIG_stigrule_230316_cloud
-    - rhel8STIG_stigrule_230316_nameservers | length < 2
-    - current_dns_servers | length < 2
-
-- name: STIGrule_230316__validate_nameserver_count_for_cloud
-  ansible.builtin.fail:
-    msg: rhel8STIG_stigrule_230316_nameservers variable must contain 1 or more IP addresses on cloud systems
-  when:
-    - rhel8STIG_stigrule_230316_Manage
-    - dns_client
-    - rhel8STIG_stigrule_230316_cloud
-    - rhel8STIG_stigrule_230316_nameservers | length < 1
-    - current_dns_servers | length < 1
-
 - name: STIGrule_230316__set_dns_with_nmcli_on_first_interface
   ansible.builtin.command:
     cmd: nmcli con mod {{ nm_connections[0].name }} ipv4.dns "{{ rhel8STIG_stigrule_230316_nameservers | join(' ') }}"
