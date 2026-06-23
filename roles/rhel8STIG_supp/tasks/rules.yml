@@ -1497,8 +1497,18 @@
 - name: stigrule_230301__add_nodev_to_fstab
   ansible.builtin.replace:
     path: /etc/fstab
-    regexp: '^(\S+\s+{{ item | regex_escape }}\s+\S+\s+)((?!(?:\S*,)?nodev(?:,|\s))\S+)(\s+\d+\s+\d+.*)$'
-    replace: '\1\2,nodev\3'
+    regexp: '^(\S+\s+{{ item | regex_escape }}\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
+    line: >-
+      \g<1>{{
+        (
+          (
+            "\2".replace(" ", "").split(",")
+          ) +
+          (
+            ['nosuid'] if 'nosuid' not in "\2".replace(" ", "").split(",") else []
+          )
+        ) | join(",")
+      }}\3
   loop: "{{ rhel8STIG_stigrule_230301_target_mounts | default([]) }}"
   when:
     - rhel8STIG_stigrule_230301_Manage
