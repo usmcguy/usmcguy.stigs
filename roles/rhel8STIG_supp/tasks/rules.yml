@@ -1391,10 +1391,6 @@
     - rhel8STIG_stigrule_230299_Manage
     - fstab_home_entry.rc == 0
 
-- name: DEBUG
-  debug:
-    var: fstab_home_fields
-
 - name: STIGrule_230299__add_nosuid_home_etc_fstab
   ansible.builtin.lineinfile:
     path: /etc/fstab
@@ -1419,10 +1415,12 @@
 
 # V-230300 RHEL-08-010571
 - name: STIGrule_230302__boot_nosuid_etc_fstab
-  ansible.builtin.command: grep '/boot' /etc/fstab
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep '/boot' /etc/fstab || true
   register: fstab_boot_entry
   changed_when: false
-  failed_when: false
   when:
     - rhel8STIG_stigrule_230300_Manage
     - boot_mode == "BIOS"
@@ -1438,8 +1436,18 @@
 - name: STIGrule_230300__add_nosuid_boot_etc_fstab
   ansible.builtin.lineinfile:
     path: /etc/fstab
-    regexp: '^([^#].+\s+/boot\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
+    regexp: '^(\S+\s+/boot\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
+    line: >-
+      \g<1>{{
+        (
+          (
+            "\2".replace(" ", "").split(",")
+          ) +
+          (
+            ['nosuid'] if 'nosuid' not in "\2".replace(" ", "").split(",") else []
+          )
+        ) | join(",")
+      }}\3
     backrefs: true
     # backup: true
   when:
