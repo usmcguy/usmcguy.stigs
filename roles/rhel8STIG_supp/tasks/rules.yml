@@ -1515,22 +1515,33 @@
     - (rhel8STIG_stigrule_230301_target_mounts | default([]) | length) > 0
   register: rhel8STIG_stigrule_230301_fstab_changes
 
-- name: stigrule_230301__remount_partitions_with_nodev # noqa: command-instead-of-module
-  ansible.builtin.command:
-    cmd: "mount -o remount {{ item }}"
+- name: stigrule_230301__remount_partitions_with_nodev
+  ansible.posix.mount:
+    path: "{{ item }}"
+    state: remounted
   loop: "{{ rhel8STIG_stigrule_230301_target_mounts | default([]) }}"
   when:
     - rhel8STIG_stigrule_230301_Manage
     - (rhel8STIG_stigrule_230301_target_mounts | default([]) | length) > 0
-  register: remount_result
-  changed_when: remount_result.rc == 0
+
+#- name: stigrule_230301__remount_partitions_with_nodev # noqa: command-instead-of-module
+#  ansible.builtin.command:
+#    cmd: "mount -o remount {{ item }}"
+#  loop: "{{ rhel8STIG_stigrule_230301_target_mounts | default([]) }}"
+#  when:
+#    - rhel8STIG_stigrule_230301_Manage
+#    - (rhel8STIG_stigrule_230301_target_mounts | default([]) | length) > 0
+#  register: remount_result
+#  changed_when: remount_result.rc == 0
 
 # V-230302 RHEL-08-010590
 - name: STIGrule_230302__home_noexec_etc_fstab
-  ansible.builtin.command: grep '{{ default_home_path }}' /etc/fstab
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep '{{ default_home_path }}' /etc/fstab || true
   register: fstab_noexec_entry
   changed_when: false
-  failed_when: false
   when:
     - rhel8STIG_stigrule_230302_Manage
 
@@ -1551,8 +1562,18 @@
 - name: STIGrule_230302__add_noexec_home_etc_fstab
   ansible.builtin.lineinfile:
     path: /etc/fstab
-    regexp: '^([^#].+\s+{{ default_home_path }}\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,noexec\3'
+    regexp: '^(\S+\s+{{ default_home_path }}\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
+    line: >-
+      \g<1>{{
+        (
+          (
+            "\2".replace(" ", "").split(",")
+          ) +
+          (
+            ['noexec'] if 'noexec' not in "\2".replace(" ", "").split(",") else []
+          )
+        ) | join(",")
+      }}\3
     backrefs: true
     # backup: true
   when:
