@@ -63,3 +63,8 @@
     name: ipsec
     state: restarted
   when: "'libreswan' in ansible_facts.packages"
+- name: apply_authselect_changes
+  ansible.builtin.command: authselect apply-changes
+  register: auth_select_apply
+  changed_when: "'changes were applied' in auth_select_apply.stdout"
+  notify: sssd_restart

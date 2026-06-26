@@ -7,8 +7,9 @@ rhel8STIG_stigrule_authselect_features:
   - with-mkhomedir
   - with-smartcard
   - with-smartcard-lock-on-removal
-  - with-sudoers
+  - with-sudo
   - without-nullok
+rhel8STIG_stigrule_authselect_force: true
 rhel8STIG_stigrule_authselect_profile: sssd
 rhel8STIG_stigrule_authselect_dir: /var/log/faillock
 rhel8STIG_stigrule_logon_DenyAttempts: 3
@@ -261,6 +262,7 @@ rhel8STIG_stigrule_230373_Manage: true
 rhel8STIG_stigrule_230373_inactive: 35
 # V-230376
 rhel8STIG_stigrule_230376_Manage: true
+rhel8STIG_stigrule_230376_expire: 1
 # V-230380
 rhel8STIG_stigrule_230380_Manage: true
 # V-230381
