@@ -50,6 +50,7 @@ rhel8STIG_stigrule_230238_Manage: true
 # V-230243 RHEL-08-010190
 rhel8STIG_stigrule_230243_Manage: true
 rhel8STIG_stigrule_230243_ignore_dirs: []
+rhel8STIG_stigrule_230244_Manage: true
 # V-230245
 rhel8STIG_stigrule_230245_Manage: true
 # V-230246

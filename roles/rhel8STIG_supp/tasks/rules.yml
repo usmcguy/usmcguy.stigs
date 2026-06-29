@@ -290,7 +290,7 @@
   no_log: true
   when:
     - rhel8STIG_stigrule_230229_Manage
-    - sssd_ca_db_stat.stat.exists
+    # - sssd_ca_db_stat.stat.exists
 
 - name: STIGrule_230229__split_sssd_ca_bundle
   ansible.builtin.set_fact:
@@ -300,15 +300,13 @@
         multiline=True) }}
   no_log: true
   when:
-    - false
     - rhel8STIG_stigrule_230229_Manage
-    - sssd_ca_db_stat.stat.exists
+    # - sssd_ca_db_stat.stat.exists
 
 - name: STIGrule_230229__create_empty_db_pems
   ansible.builtin.set_fact:
     sssd_db_pems: []
   when:
-    - false
     - rhel8STIG_stigrule_230229_Manage
     - not sssd_ca_db_stat.stat.exists
 
@@ -384,7 +382,7 @@
   notify: sssd_restart
   when:
     - rhel8STIG_stigrule_230229_Manage
-    - sssd_ca_db_stat.stat.exists
+    # - sssd_ca_db_stat.stat.exists
     - missing_root_cas | length > 0
 
 # V-230232
@@ -505,7 +503,7 @@
 - name: stigrule_230237__enable_authselect_with_features
   ansible.builtin.command: "authselect select {{ rhel8STIG_stigrule_authselect_profile }} {{ rhel8STIG_stigrule_authselect_features | join(' ') }} {{ '--force' if rhel8STIG_stigrule_authselect_force | bool else '' }}"
   register: rhel8STIG_230237_authselect_enable
-  changed_when: "'Profile' in rhel8STIG_230332_authselect_enable.stdout"
+  changed_when: "'Profile' in rhel8STIG_230237_authselect_enable.stdout"
   notify: apply_authselect_changes
   when:
     - rhel8STIG_stigrule_230237_Manage
