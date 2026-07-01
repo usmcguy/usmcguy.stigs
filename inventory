@@ -1,6 +1,7 @@
 # localhost ansible_host=127.0.0.1 ansible_connection=local
+# ForwardAgent=yes" ansible_become_flags="--preserve-env=SSH_AUTH_SOCK" <- required when using an SSH agent to provide credentials
 rhel-8 ansible_user=dave ansible_ssh_extra_args="-o ForwardAgent=yes" ansible_become_flags="--preserve-env=SSH_AUTH_SOCK"
 
 [all:vars]
 rhel8STIG_stigrule_230316_cloud="true"
-rhel8STIG_stigrule_230316_nameservers="['172.16.20.1']"
+rhel8STIG_stigrule_230316_nameservers="['172.16.10.1']"
