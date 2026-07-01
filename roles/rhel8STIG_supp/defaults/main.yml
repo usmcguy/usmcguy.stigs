@@ -1,10 +1,28 @@
+# Global vars
 rhel8STIG_allow_system_reboot: true
+rhel8STIG_stigrule_authselect_features:
+  - with-faillock
+  - with-files-access-provider
+  - with-files-domain
+  - with-mkhomedir
+  - with-smartcard
+  - with-smartcard-lock-on-removal
+  - with-sudo
+  - without-nullok
+rhel8STIG_stigrule_authselect_force: true
+rhel8STIG_stigrule_authselect_profile: sssd
+rhel8STIG_stigrule_authselect_dir: /var/log/faillock
+rhel8STIG_stigrule_logon_DenyAttempts: 3
+rhel8STIG_stigrule_login_FailInterval: 900
+rhel8STIG_stigrule_login_UnlockTime: 0
+rhel8STIG_stigrule_sssd_domain: fully.qualified.domain.name
+rhel8STIG_stigrule_sssd_id_provider: files
 # V-230222 RHEL-08-010010
 rhel8STIG_stigrule_230222_Manage: true
-rhel8STIG_stigrule_230222__baseos_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/baseos/os
-rhel8STIG_stigrule_230222__appstream_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/appstream/os
+# rhel8STIG_stigrule_230222__baseos_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/baseos/os
+# rhel8STIG_stigrule_230222__appstream_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/appstream/os
 rhel8STIG_stigrule_230222__dnf_State: latest
-rhel8STIG_stigrule_230222_repo_file: ansible
+# rhel8STIG_stigrule_230222_repo_file: ansible
 # V-230223
 rhel8STIG_stigrule_230223_Manage: true
 # V-230229 RHEL-08-010090
@@ -34,6 +52,8 @@ rhel8STIG_stigrule_230238_Manage: true
 # V-230243 RHEL-08-010190
 rhel8STIG_stigrule_230243_Manage: true
 rhel8STIG_stigrule_230243_ignore_dirs: []
+# V-230244
+rhel8STIG_stigrule_230244_Manage: true
 # V-230245
 rhel8STIG_stigrule_230245_Manage: true
 # V-230246
@@ -102,6 +122,8 @@ rhel8STIG_stigrule_230286_Manage: true
 rhel8STIG_stigrule_230287_Manage: true
 # V-230299 RHEL-08-010570
 rhel8STIG_stigrule_230299_Manage: true
+# V-230300 RHEL-08-010571
+rhel8STIG_stigrule_230300_Manage: true
 # V-230301 RHEL-08-010580
 rhel8STIG_stigrule_230301_Manage: true
 rhel8STIG_stigrule_230301_exclude_mounts: []
@@ -145,9 +167,8 @@ rhel8STIG_stigrule_230312_Manage: true
 rhel8STIG_stigrule_230316_Manage: true
 rhel8STIG_stigrule_230316_nameservers: []
 rhel8STIG_stigrule_230316_cloud: false
+rhel8STIG_stigrule_230316_dns_interface: "" # Use value from output of 'nmcli' cmd, next to the word 'connected' Example: ens18 or enp6s18. Default is 1st non-loopback interface found.
 rhel8STIG_stigrule_230316_ignore_dhcp_dns: false
-# rhel8STIG_stigrule_230316_ns1: ns1.ahi.glb.inf.dns.mil
-# rhel8STIG_stigrule_230316_ns2: ns2.ahi.glb.inf.dns.mil
 # V-230317
 rhel8STIG_stigrule_230317_Manage: true
 rhel8STIG_stigrule_230317_dot_bashrc: |
@@ -196,23 +217,38 @@ rhel8STIG_stigrule_230326_new_owner: root
 rhel8STIG_stigrule_230327_Manage: true
 rhel8STIG_stigrule_230327_ignore_dirs: []
 rhel8STIG_stigrule_230327_new_group: wheel
+# V-230332 RHEL-08-020010
+rhel8STIG_stigrule_230332_Manage: true
 # V-230333
 rhel8STIG_stigrule_230333_Manage: true
-rhel8STIG_stigrule_230333_denies: 3
+# V-230334 RHEL-08-020012
+rhel8STIG_stigrule_230334_Manage: true
 # V-230335
 rhel8STIG_stigrule_230335_Manage: true
-rhel8STIG_stigrule_230335_interval: 900
+# V-230336 RHEL-08-020014
+rhel8STIG_stigrule_230336_Manage: true
 # V-230337
 rhel8STIG_stigrule_230337_Manage: true
-rhel8STIG_stigrule_230337_time: 0
+# V-230338 RHEL-08-020016
+rhel8STIG_stigrule_230338_Manage: true
 # V-230339
 rhel8STIG_stigrule_230339_Manage: true
+# V-230340 RHEL-08-020018
+rhel8STIG_stigrule_230340_Manage: true
 # V-230341
 rhel8STIG_stigrule_230341_Manage: true
+# V-230344 RHEL-08-020018
+rhel8STIG_stigrule_230342_Manage: true
 # V-230343
 rhel8STIG_stigrule_230343_Manage: true
 # V-230345
 rhel8STIG_stigrule_230345_Manage: true
+# V-230351
+rhel8STIG_stigrule_230351_Manage: true
+# V-230355
+rhel8STIG_stigrule_230355_Manage: true
+# V-230356
+rhel8STIG_stigrule_230356_Manage: true
 # V-230364
 rhel8STIG_stigrule_230364_Manage: true
 rhel8STIG_stigrule_230364_exempt_users: []
@@ -225,8 +261,16 @@ rhel8STIG_stigrule_230371_min_uid: 1000
 rhel8STIG_stigrule_230371_max_uid: 60000
 # V-230372
 rhel8STIG_stigrule_230372_Manage: true
+# V-230373
+rhel8STIG_stigrule_230373_Manage: true
+rhel8STIG_stigrule_230373_inactive: 35
+# V-230376
+rhel8STIG_stigrule_230376_Manage: true
+rhel8STIG_stigrule_230376_expire: 1
+# V-230380
+rhel8STIG_stigrule_230380_Manage: true
 # V-230381
-rhel8STIG_stigrule_230381_Manage: true
+# rhel8STIG_stigrule_230381_Manage: true
 # V-230383
 # rhel8STIG_stigrule_230383_Manage: true
 # V-230384
@@ -237,6 +281,18 @@ rhel8STIG_stigrule_230385_Manage: true
 # rhel8STIG_stigrule_230389_Manage: true
 # rhel8STIG_stigrule_230389__postmaster:
 #  - root
+# V-230396 RHEL-08-030070
+rhel8STIG_stigrule_230396_Manage: true
+# V-230397 RHEL-08-030080
+rhel8STIG_stigrule_230397_Manage: true
+# V-230398 RHEL-08-030090
+rhel8STIG_stigrule_230398_Manage: true
+# V-230399 RHEL-08-030100
+rhel8STIG_stigrule_230399_Manage: true
+# V-230400 RHEL-08-030110
+rhel8STIG_stigrule_230400_Manage: true
+# V-230401 RHEL-08-030120
+rhel8STIG_stigrule_230401_Manage: true
 # V-230466
 # rhel8STIG_stigrule_230466_Manage: true
 # V-230468
@@ -246,8 +302,25 @@ rhel8STIG_stigrule_230469_Manage: true
 rhel8STIG_stigrule_230469_limit: 8192
 # V-230470
 rhel8STIG_stigrule_230470_Manage: true
+# V-230471 RHEL-08-030610
+rhel8STIG_stigrule_230471_Manage: true
+# V-230472 RHEL-08-030620
+rhel8STIG_stigrule_230472_Manage: true
+# V-230473 RHEL-08-030630
+rhel8STIG_stigrule_230473_Manage: true
+# V-230474 RHEL-08-030640
+rhel8STIG_stigrule_230474_Manage: true
 # V-230475
 rhel8STIG_stigrule_230475_Manage: true
+rhel8STIG_stigrule_230475_aide_attrs: "p+i+n+u+g+s+b+acl+xattrs+sha512"
+rhel8STIG_stigrule_230475_aide_bins:
+  - /usr/sbin/auditctl
+  - /usr/sbin/auditd
+  - /usr/sbin/ausearch
+  - /usr/sbin/aureport
+  - /usr/sbin/autrace
+  - /usr/sbin/rsyslogd
+  - /usr/sbin/augenrules
 # V-230479
 rhel8STIG_stigrule_230479_Manage: true
 rhel8STIG_stigrule_230479_syslog_host: syslogHost
@@ -256,8 +329,14 @@ rhel8STIG_stigrule_230479_protocol: UDP # UDP or TCP
 # V-230484
 rhel8STIG_stigrule_230484_Manage: true
 rhel8STIG_stigrule_230484_ntp_server: 0.us.pool.ntp.mil
+# V-230485 RHEL-08-030741
+rhel8STIG_stigrule_230485_Manage: true
+# V-230486 RHEL-08-030742
+rhel8STIG_stigrule_230486_Manage: true
 # V-230491
 rhel8STIG_stigrule_230491_Manage: true
+# V-230493 RHEL-08-040020
+rhel8STIG_stigrule_230493_Manage: true
 # V-230494
 rhel8STIG_stigrule_230494_Manage: true
 # V-230495
@@ -290,9 +369,35 @@ rhel8STIG_stigrule_230504_icmp_blocks:
 # rhel8STIG_stigrule_230506_Manage: true
 # V-230507
 rhel8STIG_stigrule_230507_Manage: true
+# V-230508 RHEL-08-040120
+rhel8STIG_stigrule_230508_Manage: true
+# V-230509 RHEL-08-040121
+rhel8STIG_stigrule_230509_Manage: true
+# V-230510 RHEL-08-040122
+rhel8STIG_stigrule_230510_Manage: true
+# V-230511 RHEL-08-040123
+rhel8STIG_stigrule_230511_Manage: true
+# V-230512 RHEL-08-040124
+rhel8STIG_stigrule_230512_Manage: true
 # V-230513
 rhel8STIG_stigrule_230513_Manage: true
-# V-230522
+# V-230514 RHEL-08-040126
+rhel8STIG_stigrule_230514_Manage: true
+# V-230515 RHEL-08-040127
+rhel8STIG_stigrule_230515_Manage: true
+# V-230516 RHEL-08-040128
+rhel8STIG_stigrule_230516_Manage: true
+# V-230517 RHEL-08-040129
+rhel8STIG_stigrule_230517_Manage: true
+# V-230518 RHEL-08-040130
+rhel8STIG_stigrule_230518_Manage: true
+# V-230519 RHEL-08-040131
+rhel8STIG_stigrule_230519_Manage: true
+# V-230520 RHEL-08-040132
+rhel8STIG_stigrule_230520_Manage: true
+# V-230521 RHEL-08-040133
+rhel8STIG_stigrule_230521_Manage: true
+# V-230522 RHEL-08-040134
 rhel8STIG_stigrule_230522_Manage: true
 # V-230523
 rhel8STIG_stigrule_230523_Manage: true
@@ -302,22 +407,43 @@ rhel8STIG_stigrule_230524_Manage: true
 rhel8STIG_stigrule_230525_Manage: true
 # V-230529
 # rhel8STIG_stigrule_230529_Manage: true
+# V-230530 RHEL-08-040171
+rhel8STIG_stigrule_230530_Manage: true
 # V-230531
 rhel8STIG_stigrule_230531_Manage: true
 rhel8STIG_stigrule_244531_ignore_dirs: []
 # V-230532
 rhel8STIG_stigrule_230532_Manage: true
 rhel8STIG_stigrule_244532_ignore_dirs: []
+# V-230553 RHEL-08-040320
+rhel8STIG_stigrule_230533_Manage: true
 # V-230534
 rhel8STIG_stigrule_230534_Manage: true
 # V-230546
 # rhel8STIG_stigrule_230546_Manage: true
 # V-230548
 # rhel8STIG_stigrule_230548_Manage: true
+# V-230550 RHEL-08-040290
+rhel8STIG_stigrule_230550_Manage: true
+rhel8STIG_stigrule_230550_smtpd_expected_value: "permit_mynetworks,reject"
+# V-230553
+rhel8STIG_stigrule_230553_Manage: true
 # V-230554
 rhel8STIG_stigrule_230554_Manage: true
+# V-230557 RHEL-08-040350
+rhel8STIG_stigrule_230557_Manage: true
 # V-230559
 # rhel8STIG_stigrule_230559_Manage: true
+# V-237640 RHEL-08-010163
+rhel8STIG_stigrule_237640_Manage: true
+# V-237641 RHEL-08-010382
+rhel8STIG_stigrule_237641_Manage: true
+# V-237642 RHEL-08-010383
+rhel8STIG_stigrule_237642_Manage: true
+rhel8STIG_stigrule_237642_ConfigFile: /etc/sudoers.d/99-stig-password-policy
+# V-237643 RHEL-08-010384
+rhel8STIG_stigrule_237643_Manage: true
+rhel8STIG_stigrule_237643_timeout_value: 0
 # V-244521
 rhel8STIG_stigrule_244521_Manage: true
 rhel8STIG_stigrule_244521_unique_name: grub_root
@@ -326,11 +452,13 @@ rhel8STIG_stigrule_244522_Manage: true
 rhel8STIG_stigrule_244522_unique_name: grub_root
 # V-244523
 # rhel8STIG_stigrule_244523_Manage: true
+# V-244524 RHEL-08-010159
+rhel8STIG_stigrule_244524_Manage: true
 # V-244525
 # rhel8STIG_stigrule_244525_Manage: true
 # rhel8STIG_stigrule_244525_ClientAliveInterval: 600
-# V-244530
-# rhel8STIG_stigrule_244530_Manage: true
+# V-244530 RHEL-08-010572
+rhel8STIG_stigrule_244530_Manage: true
 # V-244531
 rhel8STIG_stigrule_244531_Manage: true
 # V-244532
@@ -339,6 +467,8 @@ rhel8STIG_stigrule_244532_Manage: true
 rhel8STIG_stigrule_244533_Manage: true
 # V-244534
 rhel8STIG_stigrule_244534_Manage: true
+# V-244541 RHEL-08-020332
+rhel8STIG_stigrule_244541_Manage: true
 # V-244545
 rhel8STIG_stigrule_244545_Manage: true
 # V-244546
@@ -349,8 +479,15 @@ rhel8STIG_stigrule_244547_Manage: true
 rhel8STIG_stigrule_244548_Manage: true
 # V-250315
 rhel8STIG_stigrule_250315_Manage: true
+# V-250316 RHEL-08-020018
+rhel8STIG_stigrule_250316_Manage: true
 # V-250317
 rhel8STIG_stigrule_250317_Manage: true
+# V-251706 RHEL-08-010121
+rhel8STIG_stigrule_251706_Manage: true
+rhel8STIG_stigrule_251706_IgnoreSvcAccts: true
+rhel8STIG_stigrule_251706_ExcludeAccounts:
+  - root
 # V-251707
 rhel8STIG_stigrule_251707_Manage: true
 # V-251708
@@ -370,6 +507,8 @@ rhel8STIG_stigrule_251712_Manage: true
 rhel8STIG_stigrule_251713_Manage: true
 # V-251716
 rhel8STIG_stigrule_251716_Manage: true
+# V-251718 RHEL-08-040321
+rhel8STIG_stigrule_251718_Manage: true
 # V-254520
 rhel8STIG_stigrule_254520_Manage: true
 rhel8STIG_stigrule_254520_sysadm_u_selinux_users: []
@@ -398,3 +537,12 @@ rhel8STIG_stigrule_272483_Manage: true
 # V-272484
 rhel8STIG_stigrule_272484_Manage: true
 rhel8STIG_stigrule_272484_ignore_files: []
+# V-279930 RHEL-08-010280
+rhel8STIG_stigrule_279930_Manage: true
+# V-279931 RHEL-08-010275
+rhel8STIG_stigrule_279931_Manage: true
+# V-279932 RHEL-08-010270
+rhel8STIG_stigrule_279932_Manage: true
+rhel8STIG_stigrule_279932_Policy: FIPS
+# V-279933 RHEL-08-010270
+rhel8STIG_stigrule_279933_Manage: true

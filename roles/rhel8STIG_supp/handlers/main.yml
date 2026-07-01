@@ -6,10 +6,6 @@
   ansible.builtin.systemd_service:
     name: aide
     state: restarted
-- name: restart_firewalld
-  ansible.builtin.service:
-    name: firewalld
-    state: reloaded
 - name: reboot
   ansible.builtin.reboot:
     reboot_timeout: 300
@@ -26,10 +22,6 @@
   ansible.builtin.service:
     name: sshd
     state: restarted
-- name: sssd_restart
-  ansible.builtin.service:
-    name: sssd
-    state: restarted
 - name: NetworkManager_restart
   ansible.builtin.service:
     name: NetworkManager
@@ -42,3 +34,37 @@
   ansible.builtin.service:
     name: usbguard
     state: restarted
+- name: dconf_update
+  ansible.builtin.command:
+    cmd: dconf update
+  register: dconf_result
+  changed_when: dconf_result.rc == 0
+- name: reload_postfix
+  ansible.builtin.service:
+    name: postfix
+    state: reloaded
+- name: daemon_reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+- name: restart_tftp
+  ansible.builtin.service:
+    name: tftp
+    state: restarted
+- name: restart_ipsec
+  ansible.builtin.service:
+    name: ipsec
+    state: restarted
+  when: "'libreswan' in ansible_facts.packages"
+- name: apply_authselect_changes
+  ansible.builtin.command: authselect apply-changes
+  register: auth_select_apply
+  changed_when: "'changes were applied' in auth_select_apply.stdout"
+  notify: sssd_restart
+
+- name: STIGrule_230470__usbguard_daemon_conf_updated
+  ansible.builtin.lineinfile:
+    path: /etc/usbguard/usbguard-daemon.conf
+    regexp: 'AuditBackend='
+    line: AuditBackend=LinuxAudit
+    state: present
+  when: rhel8STIG_stigrule_230470_Manage
