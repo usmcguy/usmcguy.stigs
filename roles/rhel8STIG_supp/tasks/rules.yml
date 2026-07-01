@@ -4420,14 +4420,6 @@
   when: rhel8STIG_stigrule_237640_Manage
 
 # V-237641 RHEL-08-010382
-#- name: Check for insecure sudoers all entries
-#  ansible.builtin.shell: |
-#    set -o pipefail
-#    grep -iwR 'ALL' /etc/sudoers /etc/sudoers.d/ 2>/dev/null | grep -v '#' | grep -E '^\s*ALL\s+ALL=\(ALL\)\s+ALL|^\s*ALL\s+ALL=\(ALL:ALL\)\s+ALL' || true
-#  register: sudoers_check
-#  changed_when: false
-#  when: rhel8STIG_stigrule_237641_Manage
-
 - name: stigrule_237641__remove_insecure_ALL_entries_from_sudoers
   ansible.builtin.lineinfile:
     path: /etc/sudoers
@@ -6058,24 +6050,6 @@
       crypto_policy_applied.stdout != "The configured policy is applied" or
       crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
 
-#- name: Remove crypto-policies package
-#  ansible.builtin.dnf:
-#    name: crypto-policies
-#    state: absent
-#  when:
-#    - rhel8STIG_stigrule_279932_Manage
-#    - crypto_policy_applied.stdout != "The configured policy is applied" or
-#      crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
-
-#- name: stigrule_279932__reinstall_crypto_policies_package # noqa:package-latest
-#  ansible.builtin.dnf:
-#    name: crypto-policies
-#    state: latest
-#  when:
-#    - rhel8STIG_stigrule_279932_Manage
-#    - crypto_policy_applied.stdout != "The configured policy is applied" or
-#      crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
-
 - name: stigrule_279932__set_crypto_policy
   ansible.builtin.command: "update-crypto-policies --set {{ rhel8STIG_stigrule_279932_Policy }}"
   notify: reboot
@@ -6086,9 +6060,10 @@
     - crypto_policy_applied.stdout != "The configured policy is applied" or
       crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
 
-- name: stigrule_279932__install_crypto_policies_package
+# V-279933 RHEL-08-010270
+- name: stigrule_279933__install_crypto_policies_package
   ansible.builtin.dnf:
     name: crypto-policies
     state: present
   when:
-    - rhel8STIG_stigrule_279932_Manage
+    - rhel8STIG_stigrule_279933_Manage
