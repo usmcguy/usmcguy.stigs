@@ -29,3 +29,13 @@
       Found:
         rhel8STIG_stigrule_230316_nameservers: {{ rhel8STIG_stigrule_230316_nameservers | default([]) }}
         rhel8STIG_stigrule_230316_cloud: {{ rhel8STIG_stigrule_230316_cloud }}
+  when: rhel8STIG_stigrule_230316_Manage
+
+- name: Check if rhel8STIG_stigrule_254520_sysadm_u_selinux_users is defined
+  ansible.builtin.assert:
+    that:
+      - rhel8STIG_stigrule_254520_sysadm_u_selinux_users is defined
+    fail_msg: |
+      Variable rhel8STIG_stigrule_254520_sysadm_u_selinux_users should have at least 1 user defined,
+      or you will not be able to manage the system.
+  when: rhel8STIG_stigrule_254520_Manage
