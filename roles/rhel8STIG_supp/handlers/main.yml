@@ -6,10 +6,6 @@
   ansible.builtin.systemd_service:
     name: aide
     state: restarted
-- name: restart_firewalld
-  ansible.builtin.service:
-    name: firewalld
-    state: reloaded
 - name: reboot
   ansible.builtin.reboot:
     reboot_timeout: 300
@@ -25,10 +21,6 @@
 - name: ssh_restart
   ansible.builtin.service:
     name: sshd
-    state: restarted
-- name: sssd_restart
-  ansible.builtin.service:
-    name: sssd
     state: restarted
 - name: NetworkManager_restart
   ansible.builtin.service:
@@ -68,3 +60,11 @@
   register: auth_select_apply
   changed_when: "'changes were applied' in auth_select_apply.stdout"
   notify: sssd_restart
+
+- name: STIGrule_230470__usbguard_daemon_conf_updated
+  ansible.builtin.lineinfile:
+    path: /etc/usbguard/usbguard-daemon.conf
+    regexp: 'AuditBackend='
+    line: AuditBackend=LinuxAudit
+    state: present
+  when: rhel8STIG_stigrule_230470_Manage

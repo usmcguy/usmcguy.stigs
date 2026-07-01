@@ -15,6 +15,8 @@ rhel8STIG_stigrule_authselect_dir: /var/log/faillock
 rhel8STIG_stigrule_logon_DenyAttempts: 3
 rhel8STIG_stigrule_login_FailInterval: 900
 rhel8STIG_stigrule_login_UnlockTime: 0
+rhel8STIG_stigrule_sssd_domain: fully.qualified.domain.name
+rhel8STIG_stigrule_sssd_id_provider: files
 # V-230222 RHEL-08-010010
 rhel8STIG_stigrule_230222_Manage: true
 # rhel8STIG_stigrule_230222__baseos_Baseurl: https://cdn.redhat.com/content/dist/rhel8/$releasever/x86_64/baseos/os
@@ -167,8 +169,6 @@ rhel8STIG_stigrule_230316_nameservers: []
 rhel8STIG_stigrule_230316_cloud: false
 rhel8STIG_stigrule_230316_dns_interface: "" # Use value from output of 'nmcli' cmd, next to the word 'connected' Example: ens18 or enp6s18. Default is 1st non-loopback interface found.
 rhel8STIG_stigrule_230316_ignore_dhcp_dns: false
-# rhel8STIG_stigrule_230316_ns1: ns1.ahi.glb.inf.dns.mil
-# rhel8STIG_stigrule_230316_ns2: ns2.ahi.glb.inf.dns.mil
 # V-230317
 rhel8STIG_stigrule_230317_Manage: true
 rhel8STIG_stigrule_230317_dot_bashrc: |
@@ -312,6 +312,15 @@ rhel8STIG_stigrule_230473_Manage: true
 rhel8STIG_stigrule_230474_Manage: true
 # V-230475
 rhel8STIG_stigrule_230475_Manage: true
+rhel8STIG_stigrule_230475_aide_attrs: "p+i+n+u+g+s+b+acl+xattrs+sha512"
+rhel8STIG_stigrule_230475_aide_bins:
+  - /usr/sbin/auditctl
+  - /usr/sbin/auditd
+  - /usr/sbin/ausearch
+  - /usr/sbin/aureport
+  - /usr/sbin/autrace
+  - /usr/sbin/rsyslogd
+  - /usr/sbin/augenrules
 # V-230479
 rhel8STIG_stigrule_230479_Manage: true
 rhel8STIG_stigrule_230479_syslog_host: syslogHost
@@ -417,6 +426,8 @@ rhel8STIG_stigrule_230534_Manage: true
 # V-230550 RHEL-08-040290
 rhel8STIG_stigrule_230550_Manage: true
 rhel8STIG_stigrule_230550_smtpd_expected_value: "permit_mynetworks,reject"
+# V-230553
+rhel8STIG_stigrule_230553_Manage: true
 # V-230554
 rhel8STIG_stigrule_230554_Manage: true
 # V-230557 RHEL-08-040350
