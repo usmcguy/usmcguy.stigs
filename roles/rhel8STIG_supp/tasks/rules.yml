@@ -3229,11 +3229,11 @@
   changed_when: false
   when: rhel8STIG_stigrule_230484_Manage
 
-- name: STIGrule_230484__add_ntp_server
+- name: STIGrule_230484__add_ntp_source
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
-    regexp: '^server\s'
-    line: "server {{ rhel8STIG_stigrule_230484_ntp_server }} iburst maxpoll 16"
+    regexp: '^{{ rhel8STIG_stigrule_230484_ntp_directive }}\s'
+    line: "{{ rhel8STIG_stigrule_230484_ntp_directive ~ ' ' ~ rhel8STIG_stigrule_230484_ntp_source ~ ' ' ~ rhel8STIG_stigrule_230484_ntp_options }}"
     insertafter: EOF
   when:
     - rhel8STIG_stigrule_230484_Manage
