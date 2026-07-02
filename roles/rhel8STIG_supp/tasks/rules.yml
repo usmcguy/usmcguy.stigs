@@ -3158,7 +3158,7 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      find '{{ item }}' \( -perm /g+w -o -perm /o+x \) -exec ls -al {} + -exec chmod g-w,o-w {} + || true
+      find '{{ item }}' \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod g-w,o-w {} + || true
   register: chmod_audit_tools
   changed_when: chmod_audit_tools.stdout_lines | length > 0
   loop:
