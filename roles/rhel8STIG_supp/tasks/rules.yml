@@ -5620,7 +5620,7 @@
   notify: apply_authselect_changes
   when:
     - rhel8STIG_stigrule_251713_Manage
-    - system_auth_pwquality.stdout | length > 0
+    - system_auth_pwquality.stdout | length == 0
 
 # V-251716
 - name: Find pwquality drop-in files
