@@ -3230,7 +3230,7 @@
     regexp: '^{{ rhel8STIG_stigrule_230484_ntp_directive }}\s'
     line: "{{ rhel8STIG_stigrule_230484_ntp_directive ~ ' ' ~ item ~ ' iburst maxpoll ' ~ (rhel8STIG_stigrule_230484_ntp_maxpoll | string) }}"
     insertafter: EOF
-  loop: rhel8STIG_stigrule_230484_ntp_source
+  loop: "{{ rhel8STIG_stigrule_230484_ntp_source }}"
   when:
     - rhel8STIG_stigrule_230484_Manage
     - server_line_check.found == 0
