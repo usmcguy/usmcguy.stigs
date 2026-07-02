@@ -6133,7 +6133,7 @@
   when:
     - rhel8STIG_stigrule_279932_Manage
     - >
-      crypto_policy_applied.stdout != "The configured policy is applied" or
+      crypto_policy_applied.stdout != "The configured policy is applied"
 
 - name: stigrule_279932__set_crypto_policy
   ansible.builtin.shell:
@@ -6145,8 +6145,7 @@
   changed_when: "'Setting system policy' in rhel8STIG_279932_policy_set.stdout"
   when:
     - rhel8STIG_stigrule_279932_Manage
-    - crypto_policy_applied.stdout != "The configured policy is applied" or
-      crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
+    - crypto_policy_applied.stdout != "The configured policy is applied"
 
 # V-279933 RHEL-08-010270
 - name: stigrule_279933__install_crypto_policies_package
