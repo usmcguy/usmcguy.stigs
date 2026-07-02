@@ -2383,7 +2383,7 @@
       ) > 0
 
 # V-230333
-- name: STIGrule_230333__faillock_conf
+- name: STIGrule_230333__faillock_conf_set_deny
   community.general.ini_file:
     path: /etc/security/faillock.conf
     option: deny
@@ -2423,7 +2423,7 @@
     - ansible_distribution_version is version('8.2', '<')
 
 # V-230335
-- name: STIGrule_230335__faillock_conf
+- name: STIGrule_230335__faillock_conf_set_fail_interval
   community.general.ini_file:
     path: /etc/security/faillock.conf
     option: fail_interval
@@ -2462,7 +2462,7 @@
     - ansible_distribution_version is version('8.2', '<')
 
 # V-230337
-- name: STIGrule_230337__faillock_conf
+- name: STIGrule_230337__faillock_conf_set_unlock_time
   community.general.ini_file:
     path: /etc/security/faillock.conf
     option: unlock_time
@@ -2511,7 +2511,7 @@
       ) > 0
 
 # V-230339
-- name: STIGrule_230339_faillock.conf
+- name: STIGrule_230339_faillock.conf_set_dir
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: '^[#\s]*dir\s*='
@@ -2555,7 +2555,7 @@
       ) > 0
 
 # V-230341
-- name: STIGrule_230341_faillock.conf
+- name: STIGrule_230341_faillock.conf_set_silent
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: '^silent(\s+|$)'
@@ -2603,7 +2603,7 @@
       ) > 0
 
 # V-230343
-- name: STIGrule_230343_faillock.conf
+- name: STIGrule_230343_faillock.conf_set_audit
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: '^audit(\s+|$)'
@@ -2651,7 +2651,7 @@
       ) > 0
 
 # V-230345
-- name: STIGrule_230345_faillock.conf
+- name: STIGrule_230345_faillock.conf_set_even_deny_root
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: '^even_deny_root(\s+|$)'
