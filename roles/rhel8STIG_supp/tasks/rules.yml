@@ -4600,7 +4600,7 @@
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
 
-- name: STIGrule_244521__password_pbkdf2
+- name: STIGrule_244521__check_if_password_pbkdf2_present
   ansible.builtin.shell: |
     set -o pipefail
     grep 'password_pbkdf2' /etc/grub.d/01_users | awk -F' ' '{print $2}' || true
@@ -4619,8 +4619,15 @@
   when:
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
-    - current_superuser.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
-  register: superuser_updated
+    - >
+      current_superuser.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
+  register: uefi_superuser_updated
 
 - name: STIGrule_244521__change_pbkdf2_to_unique
   ansible.builtin.lineinfile:
@@ -4628,10 +4635,18 @@
     regexp: '^(.*password_pbkdf2 )\S+(\s+\S+)?$'
     line: '\1"{{ rhel8STIG_stigrule_244521_unique_name }}"\2'
     backrefs: true
+  register: uefi_password_pbkdf2
   when:
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
-    - password_pbkdf2_user.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
+    - >
+      password_pbkdf2_user.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
 
 - name: STIGrule_244521__chown_01_users
   ansible.builtin.file:
@@ -4650,6 +4665,7 @@
   when:
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
+    - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
 
 # V-244522
 - name: STIGrule_244522__current_superuser
@@ -4681,8 +4697,15 @@
   when:
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
-    - current_superuser.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
-  register: superuser_updated
+    - >
+      current_superuser.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
+  register: bios_superuser_updated
 
 - name: STIGrule_244522__change_to_unique
   ansible.builtin.lineinfile:
@@ -4690,10 +4713,17 @@
     regexp: '^(.*password_pbkdf2 )\S+(\s+\S+)?$'
     line: '\1"{{ rhel8STIG_stigrule_244522_unique_name }}"\2'
     backrefs: true
+  register: bios_password_pbkdf2
   when:
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
-    - password_pbkdf2_user_output.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
+    - password_pbkdf2_user_output.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
 
 - name: STIGrule_244522__chown_01_users
   ansible.builtin.file:
@@ -4712,7 +4742,7 @@
   when:
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
-    - password_pbkdf2_user_output.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
+    - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
 
 # v-244524
 - name: Check for sha512 in system-auth
