@@ -5693,7 +5693,7 @@
   community.general.ini_file:
     path: /etc/security/pwquality.conf
     option: retry
-    value: '3'
+    value: "{{ rhel8STIG_stigrule_logon_DenyAttempts }}"
     state: present
     no_extra_spaces: false
     create: true
