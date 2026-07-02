@@ -3219,6 +3219,12 @@
     - rsyslog_remote_check.stdout_lines | length == 0
 
 # V-230484
+- name: Ensure chrony is installed
+  ansible.builtin.package:
+    name: chrony
+    state: present
+  when: rhel8STIG_stigrule_230484_Manage
+
 - name: STIGrule_230484__check_server_line
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
@@ -3233,13 +3239,14 @@
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
     regexp: '^{{ rhel8STIG_stigrule_230484_ntp_directive }}\s'
-    line: "{{ rhel8STIG_stigrule_230484_ntp_directive ~ ' ' ~ rhel8STIG_stigrule_230484_ntp_source ~ ' ' ~ rhel8STIG_stigrule_230484_ntp_options }}"
+    line: "{{ rhel8STIG_stigrule_230484_ntp_directive ~ ' ' ~ item ~ ' iburst maxpoll ' ~ (rhel8STIG_stigrule_230484_ntp_maxpoll | string) }}"
     insertafter: EOF
+  loop: rhel8STIG_stigrule_230484_ntp_source
   when:
     - rhel8STIG_stigrule_230484_Manage
     - server_line_check.found == 0
 
-- name: STIGrule_230484__set_maxpoll_16
+- name: STIGrule_230484__ensure_existing_maxpoll_value
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
     backrefs: true
@@ -3247,7 +3254,7 @@
     line: '\116\3'
   when: rhel8STIG_stigrule_230484_Manage
 
-- name: STIGrule_230484__add_maxpoll_16
+- name: STIGrule_230484__add_maxpoll_value
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
     backrefs: true

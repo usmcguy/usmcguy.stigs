@@ -329,8 +329,9 @@ rhel8STIG_stigrule_230479_protocol: UDP # UDP or TCP
 # V-230484
 rhel8STIG_stigrule_230484_Manage: true
 rhel8STIG_stigrule_230484_ntp_directive: server
-rhel8STIG_stigrule_230484_ntp_source: 0.us.pool.ntp.mil
-rhel8STIG_stigrule_230484_ntp_options: iburst maxpoll 16
+rhel8STIG_stigrule_230484_ntp_source:
+  - 0.us.pool.ntp.mil
+rhel8STIG_stigrule_230484_maxpoll: 16
 # V-230485 RHEL-08-030741
 rhel8STIG_stigrule_230485_Manage: true
 # V-230486 RHEL-08-030742
