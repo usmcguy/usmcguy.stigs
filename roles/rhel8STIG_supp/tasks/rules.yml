@@ -144,7 +144,7 @@
 
 - name: Filter crypto subpolicies
   ansible.builtin.set_fact:
-    crypto_subpolicies: "{{ (current_crypto_policy.stdout | split(':'))[1:] }}"
+    crypto_subpolicies: "{{ (['STIG'] + ((current_crypto_policy.stdout | default('')) | split(':'))[1:] | reject('equalto', '') | list) | unique | join(':') }}"
   when: rhel8STIG_stigrule_230223_Manage
 
 - name: Slurp current crypto policy file
@@ -188,7 +188,7 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_230223_Manage
     - (not current_crypto_policy.stdout.startswith('FIPS'))
@@ -652,7 +652,7 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_230251_Manage
     - >
@@ -698,7 +698,7 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_230252_Manage
     - >
@@ -5936,7 +5936,7 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_230252_Manage
     - >
@@ -5965,7 +5965,7 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_272483_Manage
     - >
@@ -6134,13 +6134,12 @@
     - rhel8STIG_stigrule_279932_Manage
     - >
       crypto_policy_applied.stdout != "The configured policy is applied" or
-      crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
 
 - name: stigrule_279932__set_crypto_policy
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   notify: reboot
   register: rhel8STIG_279932_policy_set
   changed_when: "'Setting system policy' in rhel8STIG_279932_policy_set.stdout"
