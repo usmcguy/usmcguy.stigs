@@ -1033,17 +1033,16 @@
     - rhel8STIG_stigrule_230274_Manage
     - sssd_contents is defined
 
-- name: STIGrule_230274__enable_certificate_verification
+- name: STIGrule_230274__normalize_certificate_verification
   community.general.ini_file:
     path: "{{ item.0.file }}"
     section: "sssd"
     option: "{{ item.1 }}"
     value: "ocsp_dgst=sha1"
     ignore_spaces: false
-    # backup: true
     create: false
     follow: true
-    state: present
+    state: absent
   loop: >
         {{
         parsed_sssd
@@ -1058,9 +1057,9 @@
     - rhel8STIG_stigrule_230274_Manage
     - parsed_sssd is defined
 
-- name: STIGrule_230274__create_certificate_verification
+- name: STIGrule_230274__ensure_certificate_verification
   community.general.ini_file:
-    path: /etc/sssd/conf.d/certificate_verification.conf
+    path: /etc/sssd/sssd.conf
     section: "sssd"
     option: "certificate_verification"
     value: "ocsp_dgst=sha1"
