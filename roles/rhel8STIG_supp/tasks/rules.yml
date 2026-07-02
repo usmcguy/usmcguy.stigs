@@ -1410,7 +1410,7 @@
             "\2".replace(" ", "").split(",")
           ) +
           (
-            ['nosuid'] if 'nosuid' not in "\2".replace(" ", "").split(",") else []
+            ['nodev'] if 'nodev' not in "\2".replace(" ", "").split(",") else []
           )
         ) | join(",")
       }}\3
