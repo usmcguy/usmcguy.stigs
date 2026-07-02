@@ -5951,7 +5951,7 @@
       set -o pipefail
       update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
   when:
-    - rhel8STIG_stigrule_230253_Manage
+    - rhel8STIG_stigrule_272483_Manage
     - >
       (not current_crypto_policy.stdout.startswith('FIPS'))
       or (fips_update_ciphers.changed)
