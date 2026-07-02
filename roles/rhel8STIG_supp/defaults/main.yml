@@ -543,6 +543,5 @@ rhel8STIG_stigrule_279930_Manage: true
 rhel8STIG_stigrule_279931_Manage: true
 # V-279932 RHEL-08-010270
 rhel8STIG_stigrule_279932_Manage: true
-rhel8STIG_stigrule_279932_Policy: FIPS
 # V-279933 RHEL-08-010270
 rhel8STIG_stigrule_279933_Manage: true

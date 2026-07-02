@@ -186,7 +186,9 @@
 
 - name: STIGrule_230223__update_crypto_policy # noqa: command-instead-of-shell
   ansible.builtin.shell:
-    cmd: update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+    cmd: |
+      set -o pipefail
+      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
   when:
     - rhel8STIG_stigrule_230223_Manage
     - (not current_crypto_policy.stdout.startswith('FIPS'))
@@ -622,6 +624,7 @@
     path: /usr/share/crypto-policies/policies/FIPS.pol
     regexp: 'HMAC-SHA1[, ]*'
     replace: ''
+  register: fips_outdated_hmac
   when: rhel8STIG_stigrule_230251_Manage
 
 - name: STIGrule_230251__remove_outdated_umac
@@ -629,6 +632,7 @@
     path: /usr/share/crypto-policies/policies/FIPS.pol
     regexp: 'UMAC-128[, ]*'
     replace: ''
+  register: fips_outdated_umac
   when: rhel8STIG_stigrule_230251_Manage
 
 - name: STIGrule_230251__usr_share_update
@@ -641,7 +645,24 @@
     - /usr/share/crypto-policies/back-ends/FIPS/opensshserver.config
     - /etc/crypto-policies/back-ends/opensshserver.config
   when: rhel8STIG_stigrule_230251_Manage
+  register: usr_share_update_mac
   notify: ssh_restart
+
+- name: STIGrule_230251__update_crypto_policy # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+  when:
+    - rhel8STIG_stigrule_230251_Manage
+    - >
+      (not current_crypto_policy.stdout.startswith('FIPS'))
+      or (fips_outdated_hmac.changed)
+      or (fips_outdated_umac.changed)
+      or (usr_share_update_mac.changed)
+  register: rhel8STIG_stigrule_230251_update_crypto
+  changed_when: rhel8STIG_stigrule_230251_update_crypto.rc == 0
+  notify: reboot
 
 # V-230252 RHEL-08-010291
 - name: STIGrule_230252__remove_outdated_aes_128
@@ -649,6 +670,7 @@
     path: /usr/share/crypto-policies/policies/FIPS.pol
     regexp: 'AES-128-CBC[, ]*'
     replace: ''
+  register: fips_outdated_aes128
   when: rhel8STIG_stigrule_230252_Manage
 
 - name: STIGrule_230252__remove_outdated_aes_256
@@ -656,6 +678,7 @@
     path: /usr/share/crypto-policies/policies/FIPS.pol
     regexp: 'AES-256-CBC[, ]*'
     replace: ''
+  register: fips_outdated_aes256
   when: rhel8STIG_stigrule_230252_Manage
 
 - name: STIGrule_230252__usr_share_update
@@ -667,8 +690,25 @@
     - /usr/share/crypto-policies/FIPS/opensshserver.txt
     - /usr/share/crypto-policies/back-ends/FIPS/opensshserver.config
     - /etc/crypto-policies/back-ends/opensshserver.config
+  register: usr_share_update_ciphers
   when: rhel8STIG_stigrule_230252_Manage
   notify: ssh_restart
+
+- name: STIGrule_230252__update_crypto_policy # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+  when:
+    - rhel8STIG_stigrule_230252_Manage
+    - >
+      (not current_crypto_policy.stdout.startswith('FIPS'))
+      or (fips_outdated_aes128.changed)
+      or (fips_outdated_aes256.changed)
+      or (usr_share_update_ciphers.changed)
+  register: rhel8STIG_stigrule_230252_update_crypto
+  changed_when: rhel8STIG_stigrule_230252_update_crypto.rc == 0
+  notify: reboot
 
 # V-230253
 - name: STIGrule_230253__use_strong_entropy
@@ -5873,7 +5913,22 @@
     - /usr/share/crypto-policies/back-ends/FIPS/openssh.config
     - /etc/crypto-policies/back-ends/openssh.config
   when: rhel8STIG_stigrule_272482_Manage
+  register: fips_update_macs
   notify: ssh_restart
+
+- name: STIGrule_272482__update_crypto_policy # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+  when:
+    - rhel8STIG_stigrule_230252_Manage
+    - >
+      (not current_crypto_policy.stdout.startswith('FIPS'))
+      or (fips_update_macs.changed)
+  register: rhel8STIG_stigrule_272482_update_crypto
+  changed_when: rhel8STIG_stigrule_272482_update_crypto.rc == 0
+  notify: reboot
 
 # V-272483
 - name: STIGrule_272483__set_ciphers_openssh_policy
@@ -5886,8 +5941,23 @@
     - /usr/share/crypto-policies/FIPS/openssh.txt
     - /usr/share/crypto-policies/back-ends/FIPS/openssh.config
     - /etc/crypto-policies/back-ends/openssh.config
+  register: fips_update_ciphers
   when: rhel8STIG_stigrule_272483_Manage
   notify: ssh_restart
+
+- name: STIGrule_272483__update_crypto_policy # noqa: command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+  when:
+    - rhel8STIG_stigrule_230253_Manage
+    - >
+      (not current_crypto_policy.stdout.startswith('FIPS'))
+      or (fips_update_ciphers.changed)
+  register: rhel8STIG_stigrule_272483_update_crypto
+  changed_when: rhel8STIG_stigrule_272483_update_crypto.rc == 0
+  notify: reboot
 
 # V-272484
 - name: STIGrule_272484__Ensure_type_sysadm_t_present_on_etc_sudoers_lines
@@ -6051,7 +6121,10 @@
       crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
 
 - name: stigrule_279932__set_crypto_policy
-  ansible.builtin.command: "update-crypto-policies --set {{ rhel8STIG_stigrule_279932_Policy }}"
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
   notify: reboot
   register: rhel8STIG_279932_policy_set
   changed_when: "'Setting system policy' in rhel8STIG_279932_policy_set.stdout"
