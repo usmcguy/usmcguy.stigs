@@ -1,5 +1,13 @@
 # Global vars
 rhel8STIG_allow_system_reboot: true
+rhel8STIG_stigrule_audit_tool_bins:
+  - /usr/sbin/auditctl
+  - /usr/sbin/auditd
+  - /usr/sbin/ausearch
+  - /usr/sbin/aureport
+  - /usr/sbin/autrace
+  - /usr/sbin/rsyslogd
+  - /usr/sbin/augenrules
 rhel8STIG_stigrule_authselect_features:
   - with-faillock
   - with-files-access-provider
@@ -313,14 +321,6 @@ rhel8STIG_stigrule_230474_Manage: true
 # V-230475
 rhel8STIG_stigrule_230475_Manage: true
 rhel8STIG_stigrule_230475_aide_attrs: "p+i+n+u+g+s+b+acl+xattrs+sha512"
-rhel8STIG_stigrule_230475_aide_bins:
-  - /usr/sbin/auditctl
-  - /usr/sbin/auditd
-  - /usr/sbin/ausearch
-  - /usr/sbin/aureport
-  - /usr/sbin/autrace
-  - /usr/sbin/rsyslogd
-  - /usr/sbin/augenrules
 # V-230479
 rhel8STIG_stigrule_230479_Manage: true
 rhel8STIG_stigrule_230479_syslog_host: syslogHost

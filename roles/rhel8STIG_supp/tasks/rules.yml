@@ -3161,14 +3161,7 @@
       find '{{ item }}' \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod g-w,o-w {} + || true
   register: chmod_audit_tools
   changed_when: chmod_audit_tools.stdout_lines | length > 0
-  loop:
-    - /sbin/auditctl
-    - /sbin/aureport
-    - /sbin/ausearch
-    - /sbin/autrace
-    - /sbin/auditd
-    - /sbin/rsyslogd
-    - /sbin/augenrules
+  loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230472_Manage
 
 # V-230473 RHEL-08-030630
@@ -3176,14 +3169,7 @@
   ansible.builtin.file:
     path: "{{ item }}"
     owner: root
-  loop:
-    - /sbin/auditctl
-    - /sbin/aureport
-    - /sbin/ausearch
-    - /sbin/autrace
-    - /sbin/auditd
-    - /sbin/rsyslogd
-    - /sbin/augenrules
+  loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230473_Manage
 
 # V-230474 RHEL-08-030640
@@ -3191,14 +3177,7 @@
   ansible.builtin.file:
     path: "{{ item }}"
     group: root
-  loop:
-    - /sbin/auditctl
-    - /sbin/aureport
-    - /sbin/ausearch
-    - /sbin/autrace
-    - /sbin/auditd
-    - /sbin/rsyslogd
-    - /sbin/augenrules
+  loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230474_Manage
 
 # V-230475
@@ -3210,7 +3189,7 @@
     state: present
     create: false
     backrefs: false
-  loop: "{{ rhel8STIG_stigrule_230475_aide_bins }}"
+  loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when:
     - rhel8STIG_stigrule_230475_Manage
 
