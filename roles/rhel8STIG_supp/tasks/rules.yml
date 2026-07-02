@@ -2888,19 +2888,8 @@
   when:
     - rhel8STIG_stigrule_230372_Manage
     - >
-      rhel8STIG_230372_cert_auth_check is defined and
-      (
-        rhel8STIG_230372_smartcard_auth_check.results
-        | selectattr('stdout', 'equalto', '')
-        | list
-        | length
-      ) > 0 or
-      (
-        rhel8STIG_230372_system_auth_check.results
-        | selectattr('stdout', 'equalto', '')
-        | list
-        | length
-      ) > 0
+      (rhel8STIG_230372_smartcard_auth_check.stdout | length == 0) or
+      (rhel8STIG_230372_system_auth_check.stdout | length == 0)
 
 # V-230373
 - name: Check current INACTIVE value in /etc/default/useradd
