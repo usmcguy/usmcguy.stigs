@@ -2862,14 +2862,20 @@
     state: present
   when: rhel8STIG_stigrule_230372_Manage
 
-- name: STIGrule_230372__check_cert_auth_settings
+- name: STIGrule_230372__check_cert_auth_settings_smartcard
   ansible.builtin.shell: |
     set -o pipefail
-    grep -E '^auth\s+sufficient\s+pam_sss\.so\s+allow_missing_name' /etc/pam.d/{{ item }} | grep '_cert_auth' || true
-  register: rhel8STIG_230372_cert_auth_check
-  loop:
-    - "smartcard-auth"
-    - "system-auth"
+    grep -E '^auth\s+sufficient\s+pam_sss\.so\s+allow_missing_name' /etc/pam.d/smartcard-auth | grep -E 'try_cert_auth|require_cert_auth' || true
+  register: rhel8STIG_230372_smartcard_auth_check
+  changed_when: false
+  when:
+    - rhel8STIG_stigrule_230372_Manage
+
+- name: STIGrule_230372__check_cert_auth_settings_system
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep -E '^auth.*pam_sss\.so.*_cert_auth.*' /etc/pam.d/system-auth | grep -E 'try_cert_auth|require_cert_auth' || true
+  register: rhel8STIG_230372_system_auth_check
   changed_when: false
   when:
     - rhel8STIG_stigrule_230372_Manage
@@ -2884,7 +2890,13 @@
     - >
       rhel8STIG_230372_cert_auth_check is defined and
       (
-        rhel8STIG_230372_cert_auth_check.results
+        rhel8STIG_230372_smartcard_auth_check.results
+        | selectattr('stdout', 'equalto', '')
+        | list
+        | length
+      ) > 0 or
+      (
+        rhel8STIG_230372_system_auth_check.results
         | selectattr('stdout', 'equalto', '')
         | list
         | length
