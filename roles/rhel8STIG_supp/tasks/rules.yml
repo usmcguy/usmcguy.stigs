@@ -888,7 +888,7 @@
     - rhel8STIG_stigrule_230264_Manage
     - item.stat.exists
 
-- name: STIGrule_230264__find_repo_files
+- name: Find repo files
   ansible.builtin.find:
     paths: /etc/yum.repos.d
     patterns: "*.repo"
@@ -896,52 +896,58 @@
   register: repo_files
   when: rhel8STIG_stigrule_230264_Manage
 
-- name: STIGrule_230264__get_repo_sections
-  ansible.builtin.command: >
-    awk -F'[][]' '/^\s*\[.*\]\s*$/ {print $2}' {{ item.path }}
-  register: repo_sections_cmd
+- name: Read repo files
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
   loop: "{{ repo_files.files }}"
-  changed_when: false
+  register: repo_file_contents
+  no_log: true
   when:
     - rhel8STIG_stigrule_230264_Manage
-    - repo_files.files | length > 0
 
-- name: Build list of {path, section} dicts
+- name: Define regex filter for repo names
   ansible.builtin.set_fact:
-    repo_path_section_dicts: "{{ repo_path_section_dicts | default([]) + new_pairs }}"
-  vars:
-    new_pairs: >-
-      {{
-        item.stdout_lines
-        | map('community.general.dict_kv', 'section')
-        | map('combine', {'path': item.item.path})
-        | list
-      }}
-  loop: "{{ repo_sections_cmd.results }}"
-  loop_control:
-    label: "{{ item.item.path }}"
+    repo_section_regex: "\\[([^\\]]+?)\\]"
   when:
-    - false
     - rhel8STIG_stigrule_230264_Manage
-    - repo_sections_cmd.results | length > 0
 
-- name: STIGrule_230264__gpgcheck_main_conf_files
-  community.general.ini_file:
-    path: "{{ item.path }}"
-    section: "{{ item.section }}"
-    option: gpgcheck
-    value: 1
-    ignore_spaces: true
-    exclusive: true
-    follow: true
-    mode: '0644'
-    owner: root
-    group: root
-  loop: "{{ repo_path_section_dicts }}"
+- name: Build repo section map
+  ansible.builtin.set_fact:
+    repo_sections: >-
+      {{
+        repo_sections | default([]) +
+        [
+          {
+            'path': item.source,
+            'sections': (
+              item.content
+              | b64decode
+              | regex_findall(repo_section_regex)
+            )
+          }
+        ]
+      }}
+  loop: "{{ repo_file_contents.results }}"
+  no_log: true
   when:
-    - false
     - rhel8STIG_stigrule_230264_Manage
-    - repo_path_section_dicts is defined
+
+- name: stigrule_230265_set_gpgcheck
+  ansible.builtin.ini_file:
+    path: "{{ item.0.path }}"
+    section: "{{ item.1 }}"
+    option: gpgcheck
+    value: "{{ rhel8STIG_stigrule_230264_gpgcheck }}"
+    no_extra_spaces: false
+    ignore_spaces: true
+    create: false
+  loop: "{{ repo_sections | subelements('sections') }}"
+  loop_control:
+    label: "{{ item.0.path }} :: {{ item.1 }}"
+  no_log: true
+  when:
+    - rhel8STIG_stigrule_230264_Manage
+    - repo_sections is defined
 
 # V-230271
 - name: STIGrule_230271__find_sudoers_files

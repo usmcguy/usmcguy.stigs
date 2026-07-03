@@ -103,6 +103,7 @@ rhel8STIG_stigrule_230262_Manage: true
 rhel8STIG_stigrule_230263_Manage: true
 # V-230264 RHEL-08-010370
 rhel8STIG_stigrule_230264_Manage: true
+rhel8STIG_stigrule_230264_gpgcheck: 1
 # V-230271
 rhel8STIG_stigrule_230271_Manage: true
 rhel8STIG_stigrule_230271_sudoers_nopasswd: []
