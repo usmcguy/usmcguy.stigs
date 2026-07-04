@@ -456,7 +456,7 @@
     - boot_mode == "UEFI"
     - user_cfg_stat.stat.exists
 
-- name: stigrule_230234__set_grub_pass
+- name: stigrule_230234__set_grub_pass_UEFI
   ansible.builtin.expect:
     command: grub2-setpassword
     responses:
@@ -483,7 +483,7 @@
     - rhel8STIG_stigrule_230235_Manage
     - boot_mode == "BIOS"
 
-- name: stigrule_230235__set_grub_pass
+- name: stigrule_230235__set_grub_pass_BIOS
   ansible.builtin.expect:
     command: grub2-setpassword
     responses:
@@ -522,7 +522,7 @@
   register: keytab_files
   when: rhel8STIG_stigrule_230238_Manage
 
-- name: stigrule_230243__remove_keytab_files
+- name: stigrule_230238__remove_keytab_files
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: absent
