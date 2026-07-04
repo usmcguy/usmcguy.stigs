@@ -540,32 +540,32 @@
 # V-230243 RHEL-08-010190
 - name: stigrule_230243__excluded_ww_paths
   ansible.builtin.set_fact:
-    exclude_ww_paths: >-
+    exclude_chmod_ww_paths: >-
       {{ rhel8STIG_stigrule_230243_ignore_dirs
         | map('regex_replace', '^(.*)$', "-path '\1'")
         | join(' -o ')
       }}
   when: rhel8STIG_stigrule_230243_Manage
 
-- name: Define exclude_ww_cmd with provided list
+- name: Define exclude_chmod_ww_cmd with provided list
   ansible.builtin.set_fact:
-    exclude_ww_cmd: '\( {{ exclude_ww_paths }} \) -prune -o '
+    exclude_chmod_ww_cmd: '\( {{ exclude_chmod_ww_paths }} \) -prune -o '
   when:
     - rhel8STIG_stigrule_230243_Manage
-    - exclude_ww_paths is defined
-    - exclude_ww_paths | length > 0
+    - exclude_chmod_ww_paths is defined
+    - exclude_chmod_ww_paths | length > 0
 
-- name: Define exclude_ww_cmd with empty string
+- name: Define exclude_chmod_ww_cmd with empty string
   ansible.builtin.set_fact:
-    exclude_ww_cmd: ''
+    exclude_chmod_ww_cmd: ''
   when:
     - rhel8STIG_stigrule_230243_Manage
-    - exclude_ww_paths is not defined or exclude_ww_paths | length == 0
+    - exclude_chmod_ww_paths is not defined or exclude_chmod_ww_paths | length == 0
 
 - name: stigrule_230243__chmod_ww
   ansible.builtin.shell: |
     set -o pipefail
-    find / {{ exclude_ww_cmd }} -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null -exec ls -ald {} + -exec chmod +t {} + || true
+    find / {{ exclude_chmod_ww_cmd }} -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null -exec ls -ald {} + -exec chmod +t {} + || true
   register: chmod_ww
   changed_when: chmod_ww.stdout | length > 0
   when: rhel8STIG_stigrule_230243_Manage
@@ -2091,7 +2091,7 @@
     content: "{{ rhel8STIG_stigrule_230317_dot_bashrc }}"
   when: rhel8STIG_stigrule_230317_Manage
 
-- name: stigrule_230317__find_user_bashrc_files
+- name: Find user bashrc files
   ansible.builtin.shell: find {{ default_home_path }}/* -maxdepth 2 -type f ! -type l -name '.bashrc' 2>/dev/null || true
   register: STIGrule_230317_bashrc_files
   when: rhel8STIG_stigrule_230317_Manage
@@ -2110,68 +2110,68 @@
     - (item | split('/'))[1] not in rhel8STIG_stigrule_230317_exempt_users
 
 # V-230318
-- name: stigrule_230318__excluded_paths
+- name: Define excluded world-writable paths
   ansible.builtin.set_fact:
-    exclude_ww_paths: >-
+    exclude_chown_ww_paths: >-
       {{ rhel8STIG_stigrule_230318_ignore_dirs
         | map('regex_replace', '^(.*)$', "-path '\1'")
         | join(' -o ')
       }}
   when: rhel8STIG_stigrule_230318_Manage
 
-- name: stigrule_230318__add_prune_argument
+- name: Add prune argument for excluded world-writable paths
   ansible.builtin.set_fact:
-    exclude_ww_cmd: '\( {{ exclude_ww_paths }} \) -prune -o'
+    exclude_chown_ww_cmd: '\( {{ exclude_chown_ww_paths }} \) -prune -o'
   when:
     - rhel8STIG_stigrule_230318_Manage
-    - exclude_ww_paths is defined
-    - exclude_ww_paths | length > 0
+    - exclude_chown_ww_paths is defined
+    - exclude_chown_ww_paths | length > 0
 
-- name: stigrule_230318__set_empty_var
+- name: Set empty var when no world-writable paths excluded
   ansible.builtin.set_fact:
-    exclude_ww_cmd: ''
+    exclude_chown_ww_cmd: ''
   when:
     - rhel8STIG_stigrule_230318_Manage
-    - exclude_ww_paths is not defined or exclude_ww_paths | length == 0
+    - exclude_chown_ww_paths is not defined or exclude_chown_ww_paths | length == 0
 
 - name: stigrule_230318__chown_world_writable
   ansible.builtin.shell: |
     set -o pipefail
-    find {{ item }} -xdev {{ exclude_ww_cmd }} -type d -perm -0002 -uid +999 -exec ls -al {} + -exec chown root {} + || true
+    find {{ item }} -xdev {{ exclude_chown_ww_cmd }} -type d -perm -0002 -uid +999 -exec ls -al {} + -exec chown root {} + || true
   loop: "{{ local_partions.stdout_lines }}"
   register: chown_ww_part
   changed_when: chown_ww_part.stdout | length > 0
   when: rhel8STIG_stigrule_230318_Manage
 
 # V-230319
-- name: stigrule_230319__excluded_paths
+- name: Define excluded world-writable paths
   ansible.builtin.set_fact:
-    exclude_ww_paths: >-
+    exclude_chgrp_ww_paths: >-
       {{ rhel8STIG_stigrule_230319_ignore_dirs
         | map('regex_replace', '^(.*)$', "-path '\1'")
         | join(' -o ')
       }}
   when: rhel8STIG_stigrule_230319_Manage
 
-- name: stigrule_230319__add_prune_argument
+- name: Add prune argument
   ansible.builtin.set_fact:
-    exclude_ww_cmd: '\( {{ exclude_ww_paths }} \) -prune -o'
+    exclude_chgrp_ww_cmd: '\( {{ exclude_chgrp_ww_paths }} \) -prune -o'
   when:
     - rhel8STIG_stigrule_230319_Manage
-    - exclude_ww_paths is defined
-    - exclude_ww_paths | length > 0
+    - exclude_chgrp_ww_paths is defined
+    - exclude_chgrp_ww_paths | length > 0
 
-- name: stigrule_230319__set_empty_var
+- name: Set empty var
   ansible.builtin.set_fact:
-    exclude_ww_cmd: ''
+    exclude_chgrp_ww_cmd: ''
   when:
     - rhel8STIG_stigrule_230319_Manage
-    - exclude_ww_paths is not defined or exclude_ww_paths | length == 0
+    - exclude_chgrp_ww_paths is not defined or exclude_chgrp_ww_paths | length == 0
 
 - name: stigrule_230319__chgrp_world_writable
   ansible.builtin.shell: |
     set -o pipefail
-    find {{ item }} -xdev {{ exclude_ww_cmd }} -type d -perm -0002 -gid +999 -exec ls -ald {} + -exec chgrp root {} + || true
+    find {{ item }} -xdev {{ exclude_chgrp_ww_cmd }} -type d -perm -0002 -gid +999 -exec ls -ald {} + -exec chgrp root {} + || true
   loop: "{{ local_partions.stdout_lines }}"
   register: chgrp_ww_part
   changed_when: chgrp_ww_part.stdout | length > 0
@@ -2195,8 +2195,7 @@
 
 - name: Print list of discovered interactive users
   ansible.builtin.debug:
-    var: "{{ item.key }}"
-  loop: "{{ interactive_user_list }}"
+    msg: "{{ interactive_user_list | map(attribute='key') | list | join(', ') }}"
 
 - name: stigrule_230320__assign_home_directory
   ansible.builtin.user:
