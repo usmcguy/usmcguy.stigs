@@ -1787,20 +1787,20 @@
     - rhel8STIG_stigrule_230312_Manage
 
 # V-230316
-- name: stigrule_230316__read_etc_nsswitch.conf
+- name: Read /etc/nsswitch.conf
   ansible.builtin.slurp:
     src: /etc/nsswitch.conf
   register: nsswitch_raw
   no_log: true
   when: rhel8STIG_stigrule_230316_Manage
 
-- name: stigrule_230316__decode_etc_nsswitch.conf_content
+- name: Decode /etc/nsswitch.conf content
   ansible.builtin.set_fact:
     nsswitch_conf: "{{ nsswitch_raw.content | b64decode }}"
   no_log: true
   when: rhel8STIG_stigrule_230316_Manage
 
-- name: stigrule_230316__determine_if_dns_client
+- name: Determine if dns client
   ansible.builtin.set_fact:
     dns_client: >-
       {{
@@ -1824,7 +1824,7 @@
   when:
     - rhel8STIG_stigrule_230316_Manage
 
-- name: stigrule_230316__Check if NetworkManager service is present
+- name: Check if NetworkManager service is present
   ansible.builtin.systemd:
     name: NetworkManager
   register: nm_service
@@ -1833,24 +1833,24 @@
     - rhel8STIG_stigrule_230316_Manage
     - "'hosts' in nsswitch_conf.stdout"
 
-- name: stigrule_230316__Stat /etc/resolv.conf
+- name: Stat /etc/resolv.conf
   ansible.builtin.stat:
     path: /etc/resolv.conf
     get_checksum: false
     get_mime: false
   register: resolv_stat
 
-- name: stigrule_230316__Check if /etc/resolv.conf is immutable (chattr +i)
+- name: Check if /etc/resolv.conf is immutable (chattr +i)
   ansible.builtin.command: lsattr -d /etc/resolv.conf
   register: resolv_attr
   changed_when: false
   failed_when: resolv_attr.rc != 0
 
-- name: stigrule_230316__Extract immutable flag
+- name: Extract immutable flag
   ansible.builtin.set_fact:
     resolv_immutable: "{{ 'i' in (resolv_attr.stdout.split() | first) }}"
 
-- name: stigrule_230316__Collect NetworkManager config text
+- name: Collect NetworkManager config text
   ansible.builtin.shell: |
     set -o pipefail
     {
@@ -1871,7 +1871,7 @@
     - nm_service.status is defined
   no_log: true
 
-- name: stigrule_230316__Parse global dns= and rc-manager= from config
+- name: Parse global dns= and rc-manager= from config
   ansible.builtin.set_fact:
     nm_dns_setting: >-
       {{
@@ -1887,36 +1887,36 @@
       }}
 
 
-- name: stigrule_230316__Get NetworkManager compiled config (if available)
+- name: Get NetworkManager compiled config (if available)
   ansible.builtin.command: NetworkManager --print-config
   register: nm_print_config
   changed_when: false
   failed_when: false
 
-- name: stigrule_230316__Parse effective dns= and rc-manager= from --print-config
+- name: Parse effective dns= and rc-manager= from --print-config
   ansible.builtin.set_fact:
     nm_effective_dns: >-
       {{ (nm_print_config.stdout | regex_findall('(?m)^\\s*dns\\s*=\\s*(\\S+)', '\\1')) | default(nm_dns_setting, true) }}
     nm_effective_rc_manager: >-
       {{ (nm_print_config.stdout | regex_findall('(?m)^\\s*rc-manager\\s*=\\s*(\\S+)', '\\1')) | default(nm_rc_manager_setting, true) }}
 
-- name: stigrule_230316__Query nmcli general DNS mode (if supported)
+- name: Query nmcli general DNS mode (if supported)
   ansible.builtin.command: nmcli general
   register: nmcli_general
   changed_when: false
   failed_when: false
 
-- name: stigrule_230316__Filter for DNS info
+- name: Filter for DNS info
   ansible.builtin.set_fact:
     nmcli_dns_mode_line: >-
       {{ (nmcli_general.stdout_lines | select('search', 'DNS:') | list | first | default('')) }}
 
-- name: stigrule_230316__Derive nmcli-reported DNS behavior
+- name: Derive nmcli-reported DNS behavior
   ansible.builtin.set_fact:
     nmcli_dns_mode: >-
       {{ (nmcli_dns_mode_line | regex_findall('DNS:\\s*(\\S+)', '\\1')) | default('', true) }}
 
-- name: stigrule_230316__Report if NetworkManger is disabled and state why
+- name: Report if NetworkManger is disabled and state why
   ansible.builtin.set_fact:
     nm_dns_disabled_reasons: >-
       {{
@@ -1927,11 +1927,11 @@
         + (['nmcli DNS mode is none'] if (nmcli_dns_mode | lower) in ['none', 'unmanaged'] else [])
       }}
 
-- name: stigrule_230316__Set final DNS managed flag
+- name: Set final DNS managed flag
   ansible.builtin.set_fact:
     nm_manages_dns: "{{ nm_dns_disabled_reasons | length == 0 and (nm_service.status is defined) | default(false) }}"
 
-- name: stigrule_230316__Show DNS management evaluation
+- name: Show DNS management evaluation
   ansible.builtin.debug:
     msg:
       nm_present: "{{ nm_service.status is defined | default(false) }}"
@@ -1954,7 +1954,7 @@
     - rhel8STIG_stigrule_230316_Manage
     - not dns_client
 
-- name: stigrule_230316__get_NetworkManager_connections
+- name: Get NetworkManager connections
   ansible.builtin.shell: |
       set -o pipefail
       nmcli -t -f DEVICE,TYPE,STATE dev status \
@@ -1970,7 +1970,7 @@
     - rhel8STIG_stigrule_230316_Manage
     - nm_manages_dns
 
-- name: stigrule_230316__parse_NetworkManager_connections
+- name: Parse NetworkManager connections
   ansible.builtin.set_fact:
     nm_connections: >-
       {{
@@ -1987,7 +1987,7 @@
   ansible.builtin.set_fact:
     dns_interface: rhel8STIG_stigrule_230316_dns_interface  "{{ rhel8STIG_stigrule_230316_dns_interface | default(nm_connections[0].name, true) }}"
 
-- name: stigrule_230316__read_etc_resolv.conf
+- name: Read /etc/resolv.conf
   ansible.builtin.slurp:
     src: /etc/resolv.conf
   register: resolv_raw
@@ -1996,14 +1996,14 @@
     - rhel8STIG_stigrule_230316_Manage
     - dns_client
 
-- name: stigrule_230316__extract_nameserver
+- name: Extract nameserver
   ansible.builtin.set_fact:
     resolv_lines: "{{ resolv_raw.content | b64decode | split('\n') }}"
   when:
     - rhel8STIG_stigrule_230316_Manage
     - dns_client
 
-- name: stigrule_230316__determine_current_nameservers
+- name: Determine current nameservers
   ansible.builtin.set_fact:
     current_dns_servers: >-
       {{
