@@ -200,6 +200,9 @@
   changed_when: update_crypto_polices.rc == 0
   notify: reboot
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-230229 RHEL-08-010090
 # https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_DoD.zip
 - name: stigrule_230229__define_vars
@@ -514,6 +517,9 @@
     - rhel8STIG_stigrule_230237_Manage
       or ("'sha512' not in password_auth_sha512.stdout")
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-230238
 - name: Look for keytab files
   ansible.builtin.find:
@@ -727,6 +733,9 @@
   when:
     - rhel8STIG_stigrule_230253_Manage
     - ansible_distribution_version is version('8.2', '>=')
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-230257
 - name: stigrule_230257__chmod_system_cmds
@@ -1003,7 +1012,7 @@
   when: rhel8STIG_stigrule_230272_Manage
 
 # V-230274 RHEL-08-010400
-- name: stigrule_230274__find_etc_sssd
+- name: stigrule_230274__find_etc_sssd_conf_files
   ansible.builtin.find:
     paths: /etc/sssd
     patterns: "*.conf"
@@ -1079,7 +1088,7 @@
     - rhel8STIG_stigrule_230274_Manage
 
 # V-230277 RHEL-08-010421
-- name: stigrule_230277__grub2-editenv
+- name: Check grub2-editenv for page_poison
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1090,7 +1099,7 @@
   when:
     - rhel8STIG_stigrule_230277_Manage
 
-- name: stigrule_230277__etc_default_grub
+- name: Check /etc/default/grub for page_poison
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1231,6 +1240,9 @@
     - rhel8STIG_stigrule_230279_Manage
     - "'init_on_free=1' not in grub2_init_check.stdout"
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-230283 RHEL-08-010460
 - name: stigrule_230283__find_shosts_equiv
   ansible.builtin.shell:
@@ -1276,6 +1288,9 @@
   changed_when: rhel8STIG_stigrule_230287_pubkey_find_cmd.stdout_lines | length > 0
   notify: ssh_restart
   when: rhel8STIG_stigrule_230287_Manage
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-230299 RHEL-08-010570
 - name: stigrule_230299__home_nosuid_etc_fstab
@@ -2083,6 +2098,9 @@
     - rhel8STIG_stigrule_230316_Manage
     - not nm_manages_dns
     - current_dns_servers != rhel8STIG_stigrule_230316_nameservers
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-230317
 - name: stigrule_230317__define_etc_skel_bashrc
@@ -2896,6 +2914,9 @@
     - >
       (rhel8STIG_230372_smartcard_auth_check.stdout | length == 0) or
       (rhel8STIG_230372_system_auth_check.stdout | length == 0)
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-230373
 - name: Check current INACTIVE value in /etc/default/useradd
@@ -4336,13 +4357,13 @@
     - rhel8STIG_stigrule_230550_Manage
     - "'postfix' in ansible_facts.packages"
     - >
-      smtpd_check.stdout_lines | length == 0 or
+      "smtpd_check.stdout_lines | length == 0 or
       'permit_mynetworks' not in smtpd_check.stdout or
       'reject' not in smtpd_check.stdout or
       smtpd_check.stdout
         | regex_replace('^smtpd_client_restrictions\s*=\s*', '')
         | trim
-        | lower != rhel8STIG_stigrule_230550_smtpd_expected_value
+        | lower != rhel8STIG_stigrule_230550_smtpd_expected_value"
   notify: reload_postfix
 
 - name: stigrule_230550__verify_smtpd_client_restrictions
@@ -4369,7 +4390,6 @@
       - xorg-x11-server-utils
       - xorg-x11-server-Xwayland
     state: absent
-  notify: reboot
   when: rhel8STIG_stigrule_230553_Manage
 
 # V-230554
@@ -4443,6 +4463,9 @@
     - rhel8STIG_stigrule_230557_Manage
     - tftp_installed.stdout_lines | length > 0
     - tftp_execstart.stdout | length == 0
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-237640 RHEL-08-010163
 - name: stigrule_237640__grub2-tools_present
@@ -5151,7 +5174,6 @@
     state: started
     enabled: true
   when: rhel8STIG_stigrule_244548_Manage
-  notify: STIGrule_230470__usbguard_daemon_conf_updated
 
 # V-250315
 - name: stigrule_250315__faillock_conf
@@ -5617,6 +5639,9 @@
     - rhel8STIG_stigrule_251713_Manage
     - system_auth_pwquality.stdout | length == 0
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-251716
 - name: Find pwquality drop-in files
   ansible.builtin.find:
@@ -5713,6 +5738,9 @@
   notify: reboot
   register: new_system_target
   changed_when: new_system_target.rc == 0
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-254520
 - name: stigrule_254520__enable SSH logins for sysadm_u
@@ -5922,6 +5950,9 @@
   when:
     - rhel8STIG_stigrule_268322_Manage
     - system_auth_nullok.stdout | length > 0
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-272482
 - name: stigrule_272482__set_MACs_openssh_policy_txt
