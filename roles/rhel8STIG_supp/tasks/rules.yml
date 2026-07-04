@@ -1190,7 +1190,7 @@
     - "'vsyscall=none' not in grub2_vsyscall_check.stdout"
 
 # V-230279 RHEL-08-010423
-- name: stigrule_230279__grub2-editenv
+- name: Check grub2-editenv for init_on_free
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1201,7 +1201,7 @@
   when:
     - rhel8STIG_stigrule_230279_Manage
 
-- name: stigrule_230279__etc_default_grub
+- name: Check /etc/default/grub for init_on_free
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1231,7 +1231,7 @@
     - grub_init_check.stdout | length > 0
   notify: grub2_update
 
-- name: stigrule_230279__grub2_set_slub_debug
+- name: stigrule_230279__grub2_set_init_on_free
   ansible.builtin.command: "grubby --update-kernel=ALL --args='init_on_free=1'"
   register: init_result
   changed_when: init_result.rc == 0
@@ -1244,7 +1244,7 @@
   ansible.builtin.meta: flush_handlers
 
 # V-230283 RHEL-08-010460
-- name: stigrule_230283__find_shosts_equiv
+- name: Find shosts.equiv
   ansible.builtin.shell:
     cmd: find / -xdev -name shosts.equiv 2>/dev/null || true
     executable: /bin/bash
@@ -1451,16 +1451,6 @@
     - rhel8STIG_stigrule_230301_Manage
     - (rhel8STIG_stigrule_230301_target_mounts | default([]) | length) > 0
 
-#- name: stigrule_230301__remount_partitions_with_nodev # noqa: command-instead-of-module
-#  ansible.builtin.command:
-#    cmd: "mount -o remount {{ item }}"
-#  loop: "{{ rhel8STIG_stigrule_230301_target_mounts | default([]) }}"
-#  when:
-#    - rhel8STIG_stigrule_230301_Manage
-#    - (rhel8STIG_stigrule_230301_target_mounts | default([]) | length) > 0
-#  register: remount_result
-#  changed_when: remount_result.rc == 0
-
 # V-230302 RHEL-08-010590
 - name: stigrule_230302__home_noexec_etc_fstab
   ansible.builtin.shell:
@@ -1548,7 +1538,7 @@
   when:
     - removable_devices is defined and removable_devices | length > 0
 
-- name: stigrule_230303__get_removable_device_fstab_info
+- name: Get removable device fstab info
   ansible.builtin.shell: |
     awk '$2 == "{{ item.mountpoint }}" { print }' /etc/fstab
   args:
@@ -1562,7 +1552,7 @@
     - rhel8STIG_stigrule_230303_Manage
     - removable_mounts is defined and removable_mounts | length > 0
 
-- name: stigrule_230303__build_updated_mount_entry
+- name: Build updated mount entry
   ansible.builtin.set_fact:
     fstab_nodev_updates: >-
       {{
@@ -1605,7 +1595,7 @@
     - fstab_nodev_updates is defined
 
 # V-230304 RHEL-08-010610
-- name: stigrule_230304__get_removable_device_fstab_info
+- name: Get removable device fstab info
   ansible.builtin.shell: |
     awk '$2 == "{{ item.mountpoint }}" { print }' /etc/fstab
   args:
@@ -1619,7 +1609,7 @@
     - rhel8STIG_stigrule_230304_Manage
     - removable_mounts is defined and removable_mounts | length > 0
 
-- name: stigrule_230304__build_updated_mount_entry
+- name: Build updated mount entry
   ansible.builtin.set_fact:
     fstab_noexec_updates: >-
       {{
@@ -1662,7 +1652,7 @@
     - fstab_noexec_updates is defined
 
 # V-230305 RHEL-08-010620
-- name: stigrule_230305__get_removable_device_fstab_info
+- name: Get removable device fstab info
   ansible.builtin.shell: |
     awk '$2 == "{{ item.mountpoint }}" { print }' /etc/fstab
   args:
@@ -1676,7 +1666,7 @@
     - rhel8STIG_stigrule_230305_Manage
     - removable_mounts is defined and removable_mounts | length > 0
 
-- name: stigrule_230305__build_updated_mount_entry
+- name: Build_updated mount entry
   ansible.builtin.set_fact:
     fstab_nosuid_updates: >-
       {{
@@ -1787,16 +1777,6 @@
   changed_when: false
 
 # V-230312 RHEL-08-010672
-- name: stigrule_230312__check_kernel_dump
-  ansible.posix.sysctl:
-    name: kernel.core_pattern
-    value: "|/bin/false"
-    reload: false
-  check_mode: true
-  register: kernel_dump
-  when:
-    - rhel8STIG_stigrule_230312_Manage
-
 - name: stigrule_230312__disable_systemd-coredump_socket
   ansible.builtin.systemd_service:
     name: systemd-coredump.socket
@@ -1805,7 +1785,6 @@
     masked: true
   when:
     - rhel8STIG_stigrule_230312_Manage
-    - kernel_dump.changed
 
 # V-230316
 - name: stigrule_230316__read_etc_nsswitch.conf
