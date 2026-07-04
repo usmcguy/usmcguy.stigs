@@ -1140,7 +1140,7 @@
     - "'page_poison=1' not in grub2_poison_check.stdout"
 
 # V-230278 RHEL-08-010422
-- name: stigrule_230278__grub2-editenv
+- name: Check grub2-editenv for vsyscall
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1152,7 +1152,7 @@
   when:
     - rhel8STIG_stigrule_230278_Manage
 
-- name: stigrule_230278__etc_default_grub
+- name: Check /etc/default/grub for vsyscall
   ansible.builtin.command: grep -E 'vsyscall(=|[[:space:]])' /etc/default/grub
   register: grub_vsyscall_check
   changed_when: false
