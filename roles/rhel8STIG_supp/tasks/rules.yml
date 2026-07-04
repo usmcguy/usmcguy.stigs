@@ -1022,7 +1022,7 @@
   when:
     - rhel8STIG_stigrule_230274_Manage
 
-- name: stigrule_230274__slurp_sssd
+- name: stigrule_230274__slurp_sssd_conf_files
   ansible.builtin.slurp:
     src: "{{ item.path }}"
   loop: "{{ sssd_matches.files }}"
@@ -1032,7 +1032,7 @@
     - rhel8STIG_stigrule_230274_Manage
     - sssd_matches is defined
 
-- name: stigrule_230274__parse_sssd
+- name: stigrule_230274__parse_sssd_conf_files
   ansible.builtin.set_fact:
     parsed_sssd: >-
       {{
@@ -1048,7 +1048,7 @@
     - rhel8STIG_stigrule_230274_Manage
     - sssd_contents is defined
 
-- name: stigrule_230274__normalize_certificate_verification
+- name: stigrule_230274__normalize_sssd_conf_files
   community.general.ini_file:
     path: "{{ item.0.file }}"
     section: "sssd"
