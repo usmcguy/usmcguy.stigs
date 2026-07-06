@@ -5569,7 +5569,7 @@
   ansible.builtin.meta: flush_handlers
 
 # V-272482
-- name: stigrule_272482__set_MACs_openssh_policy_txt
+- name: stigrule_272482__update_openssh_approved_MACs
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^MACs.*'
@@ -5598,7 +5598,7 @@
   notify: reboot
 
 # V-272483
-- name: stigrule_272483__set_ciphers_openssh_policy
+- name: stigrule_272483__update_openssh_approved_ciphers
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^Ciphers.*'
