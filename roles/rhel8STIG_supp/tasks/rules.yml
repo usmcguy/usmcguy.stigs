@@ -51,7 +51,7 @@
 
 - name: Create interactive user list
   ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] }}"
+    interactive_user_list: "{{ interactive_user_list | default([]) + [item] | unique }}"
   loop: "{{ ansible_facts.getent_passwd | dict2items }}"
   no_log: true
   when:
@@ -1956,7 +1956,7 @@
 
 - name: Update interactive user list
   ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] }}"
+    interactive_user_list: "{{ interactive_user_list | default([]) + [item] | unique }}"
   loop: "{{ ansible_facts.getent_passwd | dict2items }}"
   when:
     - item.value is sequence
@@ -1986,7 +1986,7 @@
 
 - name: Update interactive user list
   ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] }}"
+    interactive_user_list: "{{ interactive_user_list | default([]) + [item] | unique }}"
   loop: "{{ ansible_facts.getent_passwd | dict2items }}"
   when:
     - item.value is sequence
