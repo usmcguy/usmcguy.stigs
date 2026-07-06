@@ -3627,7 +3627,7 @@
     - rhel8STIG_stigrule_230504_Manage
     - zone_details.firewalld_info.zones[default_zone].target != 'DROP'
 
-- name: stigrule_230504__set_icmp_blocks
+- name: Set ICMP blocks
   ansible.posix.firewalld:
     zone: "{{ rhel8STIG_stigrule_230504_customZone }}"
     icmp_block: "{{ item }}"
@@ -3885,7 +3885,7 @@
   register: usbguard_present
   when: rhel8STIG_stigrule_230524_Manage
 
-- name: stigrule_230524__usbguard_present
+- name: stigrule_230524__usbguard_started
   ansible.builtin.service:
     name: usbguard
     state: started
