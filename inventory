@@ -3,5 +3,7 @@
 rhel-8 ansible_user=dave ansible_ssh_extra_args="-o ForwardAgent=yes" ansible_become_flags="--preserve-env=SSH_AUTH_SOCK"
 
 [all:vars]
-rhel8STIG_stigrule_230316_cloud="true"
+rhel8STIG_stigrule_230316_cloud=True
 rhel8STIG_stigrule_230316_nameservers="['172.16.10.1']"
+rhel8STIG_stigrule_230229_Manage=False
+# rhel8STIG_stigrule_230264_Manage=False
