@@ -30,6 +30,11 @@
       }}\3
     backrefs: true
   when:
-    - fstab_part_entry | length != 0
+    - fstab_part_entry.stdout | length != 0
     - partition_option is defined
     - partition_option not in fstab_part_entry.stdout
+
+- name: Remount partition {{ disk_partition }}
+  ansible.posix.mount:
+    path: "{{ disk_partition }}"
+    state: remounted
