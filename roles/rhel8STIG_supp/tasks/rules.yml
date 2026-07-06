@@ -641,7 +641,7 @@
   register: fips_outdated_umac
   when: rhel8STIG_stigrule_230251_Manage
 
-- name: stigrule_230251__update_MACs_opensshserver
+- name: stigrule_230251__update_opensshserver_approved_MACs
   ansible.builtin.replace:
     path: "{{ item }}"
     regexp: '(\s-oMACs=)[^\s]+'
