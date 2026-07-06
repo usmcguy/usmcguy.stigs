@@ -686,7 +686,7 @@
   register: fips_outdated_aes256
   when: rhel8STIG_stigrule_230252_Manage
 
-- name: stigrule_230252__usr_share_update
+- name: stigrule_230252__update_opensshserver_approved_ciphers
   ansible.builtin.replace:
     path: "{{ item }}"
     regexp: "(-oCiphers=)[^ ]*"
