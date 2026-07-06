@@ -5391,7 +5391,7 @@
           | list }}
   when: rhel8STIG_stigrule_254520_Manage
 
-- name: Ensure sysadm_u SELinux user is set on {{ ansible_user }}
+- name: Ensure sysadm_u SELinux user is set for ansible_user, {{ ansible_user }}
   ansible.builtin.set_fact:
     rhel8STIG_stigrule_254520_sysadm_u_selinux_users: "{{ rhel8STIG_stigrule_254520_sysadm_u_selinux_users + ['{{ ansible_user }}'] }}"
   when:
@@ -5399,7 +5399,7 @@
       rhel8STIG_stigrule_254520_sysadm_u_selinux_users | length == 0 or
       ansible_user not in rhel8STIG_stigrule_254520_sysadm_u_selinux_users
 
-- name: stigrule_254520__set_specified users to the sysadm_u SELinux user # noqa: command-instead-of-shell
+- name: stigrule_254520__set_specified_users_sysadm_u # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: >-
       semanage login
@@ -5434,7 +5434,7 @@
     - current_seuser != target_seuser
       or current_range != desired_range
 
-- name: stigrule_254520__set_specified users to the staff_u SELinux user # noqa: command-instead-of-shell
+- name: stigrule_254520__set_specified_users_staff_u # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: >-
       semanage login
@@ -5469,7 +5469,7 @@
     - current_seuser != target_seuser
       or current_range != desired_range
 
-- name: stigrule_254520__set_specified users to the user_u SELinux user # noqa: command-instead-of-shell
+- name: stigrule_254520__set_specified_users_user_u # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: >-
       semanage login
@@ -5534,7 +5534,7 @@
   when: rhel8STIG_stigrule_256973_Manage
 
 # V-257258
-- name: stigrule_257258__stopidlesessionsec_set_correctly
+- name: stigrule_257258__set_StopIdleSessionSec
   ansible.builtin.lineinfile:
     path: /etc/systemd/logind.conf
     regexp: '^StopIdleSessionSec=.*'
