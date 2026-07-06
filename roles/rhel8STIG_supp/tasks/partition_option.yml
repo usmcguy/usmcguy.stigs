@@ -7,13 +7,13 @@
   changed_when: false
 
 
-- name: stigrule_{{ stig_rule_id }}__fail_on_no_{{ disk_partition }}_partition # noqa:name[template]
+- name: "stigrule_{{ stig_rule_id }}__fail_on_no_{{ disk_partition }}_partition" # noqa:name[template]
   ansible.builtin.fail:
     msg: The path '{{ disk_partition }}' is not on a seperate partition
   when:
     - fstab_part_entry.stdout | length == 0
 
-- name: stigrule_{{ stig_rule_id }}__add_{{ partition_option }}_{{ disk_partition }}_etc_fstab # noqa:name[template]
+- name: "stigrule_{{ stig_rule_id }}__add_{{ partition_option | | default('') }}_{{ disk_partition }}_etc_fstab" # noqa:name[template]
   ansible.builtin.lineinfile:
     path: /etc/fstab
     regexp: '^(\S+\s+{{ disk_partition }}\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
@@ -29,6 +29,7 @@
         ) | join(",")
       }}\3
     backrefs: true
+  register: modify_fstab_part
   when:
     - fstab_part_entry.stdout | length != 0
     - partition_option is defined
@@ -38,3 +39,4 @@
   ansible.posix.mount:
     path: "{{ disk_partition }}"
     state: remounted
+  when: modify_fstab_part.changed # noqa:no-handler
