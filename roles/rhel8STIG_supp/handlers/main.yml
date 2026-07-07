@@ -8,7 +8,7 @@
     state: restarted
 - name: reboot
   ansible.builtin.reboot:
-    reboot_timeout: 300
+    reboot_timeout: 600
   when: rhel8STIG_allow_system_reboot
 - name: restart_chronyd
   ansible.builtin.service:
