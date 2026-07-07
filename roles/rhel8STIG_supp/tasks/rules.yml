@@ -3871,13 +3871,15 @@
     - rhel8STIG_stigrule_230524_Manage
 
 - name: Read existing USBGuard rules
-  ansible.builtin.command:
-    cmd: grep -Ev "^([[:space:]]*#|$)" /etc/usbguard/rules.conf || true
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep -Ev "^([[:space:]]*#|$)" /etc/usbguard/rules.conf || true
   changed_when: false
   register: usbguard_existing_rules
   when:
     - rhel8STIG_stigrule_230524_Manage
-    - usbguard_rules_conf.exists
+    - usbguard_rules_conf.stat.exists
 
 - name: stigrule_230524__usbguard_update_existing_rules
   ansible.builtin.lineinfile:
@@ -3903,7 +3905,7 @@
   notify: restart_usbguard
   when:
     - rhel8STIG_stigrule_230524_Manage
-    - not usbguard_current_rules.exists
+    - not usbguard_rules_conf.stat.exists
 
 # V-230525
 - name: stigrule_230525__nfttables_default
@@ -4946,6 +4948,7 @@
     state: present
     sysctl_file: "{{ item }}"
     reload: true
+    sysctl_set: true
   loop: "{{ sysctl_output_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_250317_Manage
