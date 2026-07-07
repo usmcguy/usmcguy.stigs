@@ -44,21 +44,8 @@
     gid_min: "{{ login_defs | regex_search('^GID_MIN\\s+([0-9]+)', '\\1', multiline=True) | default(['1000'], true) | first | int }}"
     # gid_max: "{{ login_defs | regex_search('^GID_MAX\\s+([0-9]+)', '\\1', multiline=True) | default(['60000'], true) | first | int }}"
 
-- name: Get user account info
-  ansible.builtin.getent:
-    database: passwd
-  register: getent_passwd
-
-- name: Create interactive user list
-  ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] | unique }}"
-  loop: "{{ ansible_facts.getent_passwd | dict2items }}"
-  no_log: true
-  when:
-    - item.value is sequence
-    - item.value[1] | int >= ( uid_min | int )
-    - "'nologin' not in item.value[4]"
-    - item.value[4] != "/"
+- ansible.builtin.include_tasks: # noqa: name[missing]
+    file: interactive_users.yml
 
 - name: Print list of discovered interactive users
   ansible.builtin.debug:
@@ -165,7 +152,7 @@
     path: /etc/crypto-policies/policies/modules/STIG.pmod
     ignore_spaces: true
     option: cipher@SSH
-    value: AES-256-GCM AES-256-CTR AES-128-GCM AES-128-CTR
+    value: AES-256-GCM AES-128-GCM AES-256-CTR AES-128-CTR
     mode: "0644"
     owner: root
     group: root
@@ -1056,7 +1043,7 @@
     section: "sssd"
     option: "{{ item.1 }}"
     value: "ocsp_dgst=sha1"
-    ignore_spaces: false
+    ignore_spaces: true
     create: false
     follow: true
     state: absent
@@ -1073,6 +1060,8 @@
   when:
     - rhel8STIG_stigrule_230274_Manage
     - parsed_sssd is defined
+    - item.0.file != "/etc/sssd/sssd.conf"
+  diff: true
 
 - name: stigrule_230274__ensure_certificate_verification
   community.general.ini_file:
@@ -1088,6 +1077,7 @@
     mode: '0600'
   when:
     - rhel8STIG_stigrule_230274_Manage
+  diff: true
 
 # V-230277 RHEL-08-010421
 - name: Check grub2-editenv for page_poison
@@ -1182,7 +1172,7 @@
     - grub_vsyscall_check.rc == 0
   notify: grub2_update
 
-- name: stigrule_230278__grub2_set_vsyscall
+- name: stigrule_230278__grubby_set_vsyscall
   ansible.builtin.command: "grubby --update-kernel=ALL --args='vsyscall=none'"
   register: vsyscall_result
   changed_when: vsyscall_result.rc == 0
@@ -1233,7 +1223,7 @@
     - grub_init_check.stdout | length > 0
   notify: grub2_update
 
-- name: stigrule_230279__grub2_set_init_on_free
+- name: stigrule_230279__grubby_set_init_on_free
   ansible.builtin.command: "grubby --update-kernel=ALL --args='init_on_free=1'"
   register: init_result
   changed_when: init_result.rc == 0
@@ -1949,20 +1939,8 @@
   when: rhel8STIG_stigrule_230319_Manage
 
 # V-230320
-- name: Get user account info
-  ansible.builtin.getent:
-    database: passwd
-  register: getent_passwd
-
-- name: Update interactive user list
-  ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] | unique }}"
-  loop: "{{ ansible_facts.getent_passwd | dict2items }}"
-  when:
-    - item.value is sequence
-    - item.value[1] | int >= 1000
-    - "'nologin' not in item.value[4]"
-    - item.value[4] != "/"
+- ansible.builtin.include_tasks: # noqa: name[missing]
+    file: interactive_users.yml
 
 - name: Print list of discovered interactive users
   ansible.builtin.debug:
@@ -1979,20 +1957,8 @@
     - item.value[4] | length == 0
 
 # V-230321
-- name: Get user account info
-  ansible.builtin.getent:
-    database: passwd
-  register: getent_passwd
-
-- name: Update interactive user list
-  ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] | unique }}"
-  loop: "{{ ansible_facts.getent_passwd | dict2items }}"
-  when:
-    - item.value is sequence
-    - item.value[1] | int >= 1000
-    - "'nologin' not in item.value[4]"
-    - item.value[4] != "/"
+- ansible.builtin.include_tasks: # noqa: name[missing]
+    file: interactive_users.yml
 
 - name: stigrule_230321__chmod_user_home
   ansible.builtin.shell: |
@@ -2689,7 +2655,11 @@
     current_inactive: "-1"
   when:
     - rhel8STIG_stigrule_230373_Manage
-    - inactive_check.stdout_lines | length > 0
+    - inactive_check.stdout_lines | length == 0
+
+- name: DEBUG
+  debug:
+    var: current_inactive
 
 - name: stigrule_230373__set_INACTIVE_value
   ansible.builtin.command:
@@ -2843,7 +2813,7 @@
   when: rhel8STIG_stigrule_230468_Manage
   changed_when: false
 
-- name: stigrule_230468__grubby_update
+- name: stigrule_230468__grubby_set_audit
   ansible.builtin.command: grubby --update-kernel=ALL --args="audit=1"
   register: grubby_result
   changed_when: grubby_result.rc == 0
@@ -2860,31 +2830,15 @@
   register: audit_backlog_limit
   changed_when: false
 
-- name: Extract audit_backlog_limit from kernelopts
-  ansible.builtin.set_fact:
-    audit_backlog_limit_value: >-
-      {{
-        (
-          audit_backlog_limit.stdout
-          | regex_search('audit_backlog_limit=([0-9]+)', '\1')
-          | default([])
-        )
-        | first
-        | default('0')
-      }}
-  when:
-    - rhel8STIG_stigrule_230469_Manage
-    - audit_backlog_limit.stdout | length > 0
-
-- name: stigrule_230469__grubby_update # noqa: command-instead-of-shell
+- name: stigrule_230469__grubby_set_audit_backlog_limit # noqa: command-instead-of-shell
   ansible.builtin.shell: grubby --update-kernel=ALL --args="audit_backlog_limit={{ rhel8STIG_stigrule_230469_limit }}"
   register: grubby_backlog_result
   changed_when: grubby_backlog_result.rc == 0
   when:
     - rhel8STIG_stigrule_230469_Manage
     - >
-      audit_backlog_limit_value is not defined or
-      (audit_backlog_limit_value| int) != (rhel8STIG_stigrule_230469_limit | int)
+      (audit_backlog_limit.stdout | length == 0) or
+      ((audit_backlog_limit.stdout | int) < (rhel8STIG_stigrule_230469_limit | int))
 
 # V-230470
 - name: Check if USBGuard installed
@@ -3083,12 +3037,12 @@
 - name: Check grub2-editenv for pti
   ansible.builtin.shell: |
     set -o pipefail
-    grub2-editenv list | grep -oP 'pti=\K\d+' || true
+    grub2-editenv list | grep kernelopts | sed -E 's/.*pti=([^ ]*).*/\1/' || true
   register: grub2_pti_output
   when: rhel8STIG_stigrule_230491_Manage
   changed_when: false
 
-- name: stigrule_230491__grubby_update
+- name: stigrule_230491__grubby_set_pti
   ansible.builtin.command: grubby --update-kernel=ALL --args="pti=on"
   register: grubby_pti_result
   changed_when: grubby_pti_result.rc == 0
@@ -3584,6 +3538,7 @@
     line: "  <short>{{ rhel8STIG_stigrule_230504_customZone }}</short>"
     insertafter: '<zone'
     state: present
+  register: custom_zone_shortname
   when: rhel8STIG_stigrule_230504_Manage
 
 - name: stigrule_230504__set_custom_zone_description
@@ -3593,7 +3548,16 @@
     line: "  <description>{{ rhel8STIG_stigrule_230504_zoneDesc }}</description>"
     insertafter: '<short>'
     state: present
+  register: custom_zone_desc
   when: rhel8STIG_stigrule_230504_Manage
+
+- name: Reload firewall rules
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+  changed_when: false
+  when:
+    - rhel8STIG_stigrule_230504_Manage
+    - custom_zone_shortname.changed or custom_zone_desc.changed
 
 - name: stigrule_230504__set_zone_drop_target
   ansible.posix.firewalld:
@@ -3652,7 +3616,6 @@
 - name: Reload firewall rules
   ansible.builtin.command:
     cmd: firewall-cmd --reload
-  register: firewall_reload
   changed_when: false
   when:
     - rhel8STIG_stigrule_230504_Manage
@@ -3892,23 +3855,55 @@
     enabled: true
   when: rhel8STIG_stigrule_230524_Manage
 
-- name: stigrule_230524__usbguard_list-devices
+- name: Generate rules based on connected USB devices
   ansible.builtin.command:
-    cmd: usbguard list-devices
+    cmd: usbguard generate-policy
   register: usbguard_devices
   changed_when: false
   when:
     - rhel8STIG_stigrule_230524_Manage
 
-- name: stigrule_230524__usbguard_generate-policy
+- name: Check if USBGuard rules.conf exists
+  ansible.builtin.stat:
+    path: /etc/usbguard/rules.conf
+  register: usbguard_rules_conf
+  when:
+    - rhel8STIG_stigrule_230524_Manage
+
+- name: Read existing USBGuard rules
+  ansible.builtin.command:
+    cmd: grep -Ev "^([[:space:]]*#|$)" /etc/usbguard/rules.conf || true
+  changed_when: false
+  register: usbguard_existing_rules
+  when:
+    - rhel8STIG_stigrule_230524_Manage
+    - usbguard_rules_conf.exists
+
+- name: stigrule_230524__usbguard_update_existing_rules
+  ansible.builtin.lineinfile:
+    path: /etc/usbguard/rules.conf
+    line: "{{ item }}"
+    insertafter: EOF
+    state: present
+  loop: "{{ usbguard_devices.stdout_lines }}"
+  when:
+    - rhel8STIG_stigrule_230524_Manage
+    - usbguard_existing_rules is defined
+    - usbguard_existing_rules.stdout_lines | length > 0
+    - item not in usbguard_existing_rules.stdout_lines
+  notify: restart_usbguard
+
+- name: stigrule_230524__usbguard_generate_new_rules
   ansible.builtin.shell:
-    cmd: usbguard generate-policy > /etc/usbguard/rules.conf
+    cmd: |
+      set -o pipefail
+      usbguard generate-policy > /etc/usbguard/rules.conf
   register: usbguard_policy
   changed_when: usbguard_policy.rc == 0
   notify: restart_usbguard
   when:
     - rhel8STIG_stigrule_230524_Manage
-    - usbguard_devices.stdout | length > 0
+    - not usbguard_current_rules.exists
 
 # V-230525
 - name: stigrule_230525__nfttables_default
@@ -4810,6 +4805,7 @@
     state: directory
     path: "{{ rhel8STIG_stigrule_authselect_dir }}"
     mode: '0755'
+  register: faillock_dir
   when:
     - rhel8STIG_stigrule_250315_Manage
     - ansible_distribution_version is version('8.2', '>=')
@@ -4824,7 +4820,7 @@
     - rhel8STIG_stigrule_250315_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-- name: stigrule_250315__aaply_faillock_context
+- name: stigrule_250315__apply_faillock_context
   ansible.builtin.command:
     cmd: restorecon -R -v {{ rhel8STIG_stigrule_authselect_dir }}
   register: apply_faillock_context
@@ -4832,6 +4828,7 @@
   when:
     - rhel8STIG_stigrule_250315_Manage
     - ansible_distribution_version is version('8.2', '>=')
+    - faillock_dir.changed or faillock_file_context.changed
 
 # - name: stigrule_250315__get_faillock_files
 #  ansible.builtin.find:
