@@ -1,5 +1,0 @@
-- name: Red Hat Enterprise Linux 8 - Supplemental STIG Playbook
-  hosts: all
-  gather_facts: true
-  roles:
-    - rhel8STIG_supp
