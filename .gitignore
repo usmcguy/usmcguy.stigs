@@ -6,3 +6,9 @@ test*
 *.log
 AGENTS.md
 .github/
+.vscode
+ansible.cfg
+.venv
+.env
+.key
+id_rsa*
