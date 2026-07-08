@@ -13,7 +13,7 @@
   when:
     - fstab_part_entry.stdout | length == 0
 
-- name: "stigrule_{{ stig_rule_id }}__add_{{ partition_option | | default('') }}_{{ disk_partition }}_etc_fstab" # noqa:name[template]
+- name: "stigrule_{{ stig_rule_id }}__add_{{ partition_option | default('') }}_{{ disk_partition }}_etc_fstab" # noqa:name[template]
   ansible.builtin.lineinfile:
     path: /etc/fstab
     regexp: '^(\S+\s+{{ disk_partition }}\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
