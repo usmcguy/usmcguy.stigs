@@ -5183,17 +5183,17 @@
       (aide_db_stat.stat.exists and (aide_check_output.stderr | length > 0))
       or (not aide_db_stat.stat.exists)
 
-- name: stigrule_251710__aide_update_db
-  ansible.builtin.command: /usr/sbin/aide --update
-  async: 1800
-  poll: 30
-  register: aide_update_out
-  changed_when: "'New AIDE database written' in aide_update_out.stdout"
-  failed_when: aide_update_out.rc not in [0,1,2,3,4,5,6,7]
-  no_log: true
-  when:
-    - rhel8STIG_stigrule_251710_Manage
-    - "aide_db_stat.stat.exists and ('AIDE found differences' in aide_check_output.stdout)"
+# - name: stigrule_251710__aide_update_db
+#   ansible.builtin.command: /usr/sbin/aide --update
+#   async: 1800
+#   poll: 30
+#   register: aide_update_out
+#   changed_when: "'New AIDE database written' in aide_update_out.stdout"
+#   failed_when: aide_update_out.rc not in [0,1,2,3,4,5,6,7]
+#   no_log: true
+#   when:
+#     - rhel8STIG_stigrule_251710_Manage
+#     - "aide_db_stat.stat.exists and ('AIDE found differences' in aide_check_output.stdout)"
 
 - name: stigrule_251710__rename_AIDE_db
   ansible.builtin.command: mv -f /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
@@ -5202,7 +5202,9 @@
   register: aide_move
   when:
     - rhel8STIG_stigrule_251710_Manage
-    - aide_out.changed or aide_update_out.changed
+#     - aide_out.changed or aide_update_out.changed
+    - aide_out.changed
+
 
 # V-251711
 - name: stigrule_251711__includedir_present
