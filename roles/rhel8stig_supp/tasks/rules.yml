@@ -44,21 +44,8 @@
     gid_min: "{{ login_defs | regex_search('^GID_MIN\\s+([0-9]+)', '\\1', multiline=True) | default(['1000'], true) | first | int }}"
     # gid_max: "{{ login_defs | regex_search('^GID_MAX\\s+([0-9]+)', '\\1', multiline=True) | default(['60000'], true) | first | int }}"
 
-- name: Get user account info
-  ansible.builtin.getent:
-    database: passwd
-  register: getent_passwd
-
-- name: Create interactive user list
-  ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] }}"
-  loop: "{{ ansible_facts.getent_passwd | dict2items }}"
-  no_log: true
-  when:
-    - item.value is sequence
-    - item.value[1] | int >= ( uid_min | int )
-    - "'nologin' not in item.value[4]"
-    - item.value[4] != "/"
+- ansible.builtin.include_tasks: # noqa: name[missing]
+    file: interactive_users.yml
 
 - name: Print list of discovered interactive users
   ansible.builtin.debug:
@@ -120,7 +107,7 @@
     - smartcard-auth
     - system-auth
 
-- name: STIGrule_230222__dnf_update
+- name: stigrule_230222__dnf_update
   ansible.builtin.dnf:
     name: '*'
     state: "{{ rhel8STIG_stigrule_230222__dnf_State }}"
@@ -144,7 +131,7 @@
 
 - name: Filter crypto subpolicies
   ansible.builtin.set_fact:
-    crypto_subpolicies: "{{ (current_crypto_policy.stdout | split(':'))[1:] }}"
+    crypto_subpolicies: "{{ (['STIG'] + ((current_crypto_policy.stdout | default('')) | split(':'))[1:] | reject('equalto', '') | list) | unique | join(':') }}"
   when: rhel8STIG_stigrule_230223_Manage
 
 - name: Slurp current crypto policy file
@@ -160,19 +147,19 @@
   no_log: true
   when: rhel8STIG_stigrule_230223_Manage
 
-- name: STIGrule_230223__create_stig_subpolicy_cipher_SSH
+- name: stigrule_230223__create_stig_subpolicy_cipher_SSH
   community.general.ini_file:
     path: /etc/crypto-policies/policies/modules/STIG.pmod
     ignore_spaces: true
     option: cipher@SSH
-    value: AES-256-GCM AES-256-CTR AES-128-GCM AES-128-CTR
+    value: AES-256-GCM AES-128-GCM AES-256-CTR AES-128-CTR
     mode: "0644"
     owner: root
     group: root
   register: subpolicy_cipher_SSH
   when: rhel8STIG_stigrule_230223_Manage
 
-- name: STIGrule_230223__create_stig_subpolicy_mac_SSH
+- name: stigrule_230223__create_stig_subpolicy_mac_SSH
   community.general.ini_file:
     path: /etc/crypto-policies/policies/modules/STIG.pmod
     ignore_spaces: true
@@ -184,11 +171,11 @@
   register: subpolicy_mac_SSH
   when: rhel8STIG_stigrule_230223_Manage
 
-- name: STIGrule_230223__update_crypto_policy # noqa: command-instead-of-shell
+- name: stigrule_230223__update_crypto_policy # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_230223_Manage
     - (not current_crypto_policy.stdout.startswith('FIPS'))
@@ -200,28 +187,31 @@
   changed_when: update_crypto_polices.rc == 0
   notify: reboot
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-230229 RHEL-08-010090
 # https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_DoD.zip
-- name: STIGrule_230229__define_vars
+- name: stigrule_230229__define_vars
   ansible.builtin.set_fact:
     dod_work_dir: /tmp/dod_certs
     sssd_ca_db: /etc/sssd/pki/sssd_auth_ca_db.pem
   when: rhel8STIG_stigrule_230229_Manage
 
-- name: STIGrule_230229__create_working_dir
+- name: stigrule_230229__create_working_dir
   ansible.builtin.file:
     path: "{{ dod_work_dir }}"
     state: directory
     mode: '0755'
   when: rhel8STIG_stigrule_230229_Manage
 
-- name: STIGrule_230229__unarchive_DoD_certs
+- name: stigrule_230229__unarchive_DoD_certs
   ansible.builtin.unarchive:
     src: files/unclass-certificates_pkcs7_DoD.zip
     dest: "{{ dod_work_dir }}"
   when: rhel8STIG_stigrule_230229_Manage
 
-- name: STIGrule_230229__find_pem_p7b
+- name: stigrule_230229__find_pem_p7b
   ansible.builtin.find:
     path: "{{ dod_work_dir }}"
     recurse: true
@@ -231,12 +221,12 @@
   register: dod_pem_p7b
   when: rhel8STIG_stigrule_230229_Manage
 
-- name: STIGrule_230229__define_dod_p7b_path
+- name: stigrule_230229__define_dod_p7b_path
   ansible.builtin.set_fact:
     dod_p7b_path: "{{ (dod_pem_p7b.files | first).path }}"
   when: rhel8STIG_stigrule_230229_Manage
 
-- name: STIGrule_230229__convert_p7b_to_pem
+- name: stigrule_230229__convert_p7b_to_pem
   ansible.builtin.command:
     cmd: "openssl pkcs7 -print_certs -in {{ dod_p7b_path }} -out {{ dod_work_dir }}/dod_bundle.pem"
     creates: "{{ dod_work_dir }}/dod_bundle.pem"
@@ -244,14 +234,14 @@
   changed_when: pkcs7_convert.rc == 0 and ('skipped' not in pkcs7_convert.stdout)
   when: rhel8STIG_stigrule_230229_Manage
 
-- name: STIGrule_230229__read_dod_bundle_pem
+- name: stigrule_230229__read_dod_bundle_pem
   ansible.builtin.slurp:
     path: "{{ dod_work_dir }}/dod_bundle.pem"
   register: dod_bundle_raw
   when: rhel8STIG_stigrule_230229_Manage
   no_log: true
 
-- name: STIGrule_230229__split_dod_bundle_pem
+- name: stigrule_230229__split_dod_bundle_pem
   ansible.builtin.set_fact:
     dod_bundle_pems: >-
       {{ (dod_bundle_raw.content | b64decode)
@@ -260,7 +250,7 @@
   when: rhel8STIG_stigrule_230229_Manage
   no_log: true
 
-- name: STIGrule_230229__read_cert_info
+- name: stigrule_230229__read_cert_info
   community.crypto.x509_certificate_info:
     content: "{{ item }}"
   loop: "{{ dod_bundle_pems }}"
@@ -269,7 +259,7 @@
   when: rhel8STIG_stigrule_230229_Manage
   delegate_to: localhost
 
-- name: STIGrule_230229__sssd_ca_db_stat
+- name: stigrule_230229__sssd_ca_db_stat
   ansible.builtin.stat:
     path: "{{ sssd_ca_db }}"
     get_checksum: false
@@ -277,7 +267,7 @@
   register: sssd_ca_db_stat
   when: rhel8STIG_stigrule_230229_Manage
 
-- name: STIGrule_230229__create_empty_sssd_ca_db
+- name: stigrule_230229__create_empty_sssd_ca_db
   ansible.builtin.copy:
     content: ''
     dest: "{{ sssd_ca_db }}"
@@ -288,7 +278,7 @@
     - rhel8STIG_stigrule_230229_Manage
     - not sssd_ca_db_stat.stat.exists
 
-- name: STIGrule_230229__read_sssd_ca_db
+- name: stigrule_230229__read_sssd_ca_db
   ansible.builtin.slurp:
     path: "{{ sssd_ca_db }}"
   register: sssd_db_raw
@@ -298,7 +288,7 @@
     - rhel8STIG_stigrule_230229_Manage
     # - sssd_ca_db_stat.stat.exists
 
-- name: STIGrule_230229__split_sssd_ca_bundle
+- name: stigrule_230229__split_sssd_ca_bundle
   ansible.builtin.set_fact:
     sssd_db_pems: >-
       {{ (sssd_db_raw.content | b64decode)
@@ -309,7 +299,7 @@
     - rhel8STIG_stigrule_230229_Manage
     # - sssd_ca_db_stat.stat.exists
 
-- name: STIGrule_230229__create_empty_db_pems
+- name: stigrule_230229__create_empty_db_pems
   ansible.builtin.set_fact:
     sssd_db_pems: []
   when:
@@ -317,12 +307,12 @@
     - not sssd_ca_db_stat.stat.exists
 
 
-- name: STIGrule_230229__initialize_missing_root_cas
+- name: stigrule_230229__initialize_missing_root_cas
   ansible.builtin.set_fact:
     missing_root_cas: []
   when: rhel8STIG_stigrule_230229_Manage
 
-- name: STIGrule_230229__id_missing_cas
+- name: stigrule_230229__id_missing_cas
   ansible.builtin.set_fact:
     missing_root_cas: >-
       {{ missing_root_cas
@@ -355,7 +345,7 @@
         | length == 0
       )
 
-- name: STIGrule_230229__create_block_string
+- name: stigrule_230229__create_block_string
   ansible.builtin.set_fact:
     missing_root_cas_block: "{{ (missing_root_cas_block | default([]))
                                 + [ item.subject_line ~ '\n\n'
@@ -369,7 +359,7 @@
     - rhel8STIG_stigrule_230229_Manage
     - missing_root_cas | length > 0
 
-- name: STIGrule_230229__concatinate_missing_cas
+- name: stigrule_230229__concatinate_missing_cas
   ansible.builtin.set_fact:
     missing_root_cas_concat: "{{ missing_root_cas_block | join('') }}"
   no_log: true
@@ -377,7 +367,7 @@
     - rhel8STIG_stigrule_230229_Manage
     - missing_root_cas | length > 0
 
-- name: STIGrule_230229__update_sssd_auth_ca_db_pem
+- name: stigrule_230229__update_sssd_auth_ca_db_pem
   ansible.builtin.copy:
     dest: "{{ sssd_ca_db }}"
     content: "{{ sssd_db_raw.content | b64decode }}{{ missing_root_cas_concat }}"
@@ -423,7 +413,7 @@
     - rhel8STIG_stigrule_230232_Manage
     - non_sha512_users | length != 0
 
-- name: STIGrule_230233__lock_non-sha512_user_passwords
+- name: stigrule_230233__lock_non-sha512_user_passwords
   ansible.builtin.user:
     name: "{{ item }}"
     password_lock: true
@@ -456,7 +446,7 @@
     - boot_mode == "UEFI"
     - user_cfg_stat.stat.exists
 
-- name: STIGrule_230234__set_grub_pass
+- name: stigrule_230234__set_grub_pass_UEFI
   ansible.builtin.expect:
     command: grub2-setpassword
     responses:
@@ -483,7 +473,7 @@
     - rhel8STIG_stigrule_230235_Manage
     - boot_mode == "BIOS"
 
-- name: STIGrule_230235__set_grub_pass
+- name: stigrule_230235__set_grub_pass_BIOS
   ansible.builtin.expect:
     command: grub2-setpassword
     responses:
@@ -512,7 +502,10 @@
   notify: apply_authselect_changes
   when:
     - rhel8STIG_stigrule_230237_Manage
-      or ("'sha512' not in password_auth_sha512.stdout")
+    - "'sha512' not in password_auth_sha512.stdout"
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-230238
 - name: Look for keytab files
@@ -522,7 +515,7 @@
   register: keytab_files
   when: rhel8STIG_stigrule_230238_Manage
 
-- name: STIGrule_230243__remove_keytab_files
+- name: stigrule_230238__remove_keytab_files
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: absent
@@ -532,40 +525,40 @@
     - keytab_files.matched > 0
 
 # V-230243 RHEL-08-010190
-- name: STIGrule_230243__excluded_ww_paths
+- name: stigrule_230243__excluded_ww_paths
   ansible.builtin.set_fact:
-    exclude_ww_paths: >-
+    exclude_chmod_ww_paths: >-
       {{ rhel8STIG_stigrule_230243_ignore_dirs
         | map('regex_replace', '^(.*)$', "-path '\1'")
         | join(' -o ')
       }}
   when: rhel8STIG_stigrule_230243_Manage
 
-- name: Define exclude_ww_cmd with provided list
+- name: Define exclude_chmod_ww_cmd with provided list
   ansible.builtin.set_fact:
-    exclude_ww_cmd: '\( {{ exclude_ww_paths }} \) -prune -o '
+    exclude_chmod_ww_cmd: '\( {{ exclude_chmod_ww_paths }} \) -prune -o '
   when:
     - rhel8STIG_stigrule_230243_Manage
-    - exclude_ww_paths is defined
-    - exclude_ww_paths | length > 0
+    - exclude_chmod_ww_paths is defined
+    - exclude_chmod_ww_paths | length > 0
 
-- name: Define exclude_ww_cmd with empty string
+- name: Define exclude_chmod_ww_cmd with empty string
   ansible.builtin.set_fact:
-    exclude_ww_cmd: ''
+    exclude_chmod_ww_cmd: ''
   when:
     - rhel8STIG_stigrule_230243_Manage
-    - exclude_ww_paths is not defined or exclude_ww_paths | length == 0
+    - exclude_chmod_ww_paths is not defined or exclude_chmod_ww_paths | length == 0
 
-- name: STIGrule_230243__chmod_ww
+- name: stigrule_230243__chmod_ww
   ansible.builtin.shell: |
     set -o pipefail
-    find / {{ exclude_ww_cmd }} -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null -exec ls -ald {} + -exec chmod +t {} + || true
+    find / {{ exclude_chmod_ww_cmd }} -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null -exec ls -ald {} + -exec chmod +t {} + || true
   register: chmod_ww
   changed_when: chmod_ww.stdout | length > 0
   when: rhel8STIG_stigrule_230243_Manage
 
 # V-230245
-- name: STIGrule_230245__chmod_messages
+- name: stigrule_230245__chmod_messages
   ansible.builtin.shell: |
     set -o pipefail
     find /var/log -type f -name 'messages' \( -perm /u+x -o -perm /g+w -o -perm /g+x -o -perm /o+r -o -perm /o+w -o -perm /o+x \) -exec ls -al {} + -exec chmod u-x,g-wx,o-rwx {} + || true
@@ -574,7 +567,7 @@
   when: rhel8STIG_stigrule_230245_Manage
 
 # V-230246
-- name: STIGrule_230246__chown_lib_files
+- name: stigrule_230246__chown_lib_files
   ansible.builtin.shell: |
     set -o pipefail
     find /var/log -type f -name 'messages' ! -user root -exec ls -al {} + -exec chown root {} + || true
@@ -583,7 +576,7 @@
   when: rhel8STIG_stigrule_230246_Manage
 
 # V-230247
-- name: STIGrule_230247__chgrp_messages
+- name: stigrule_230247__chgrp_messages
   ansible.builtin.shell: |
     set -o pipefail
     find /var/log -type f -name 'messages' ! -group root -exec ls -al {} + -exec chgrp root {} + || true
@@ -592,7 +585,7 @@
   when: rhel8STIG_stigrule_230247_Manage
 
 # V-230248
-- name: STIGrule_230248__chmod_var_log
+- name: stigrule_230248__chmod_var_log
   ansible.builtin.shell: |
     set -o pipefail
     find /var -maxdepth 1 -type d -name 'log' \( -perm /g+w -o -perm /o+w  \) -exec ls -ald {} + -exec chmod g-w,o-w {} + || true
@@ -601,7 +594,7 @@
   when: rhel8STIG_stigrule_230248_Manage
 
 # V-230249
-- name: STIGrule_230249__chown_var_log
+- name: stigrule_230249__chown_var_log
   ansible.builtin.shell: |
     set -o pipefail
     find /var -maxdepth 1 -type d -name 'log' ! -user root -exec ls -ald {} + -exec chown root {} + || true
@@ -610,7 +603,7 @@
   when: rhel8STIG_stigrule_230249_Manage
 
 # V-230250
-- name: STIGrule_230250__chgrp_var_log
+- name: stigrule_230250__chgrp_var_log
   ansible.builtin.shell: |
     set -o pipefail
     find /var -maxdepth 1 -type d -name 'log' ! -group root -exec ls -ald {} + -exec chgrp root {} + || true
@@ -619,7 +612,7 @@
   when: rhel8STIG_stigrule_230250_Manage
 
 # V-230251 RHEL-08-010290
-- name: STIGrule_230251__remove_outdated_hmac
+- name: stigrule_230251__remove_outdated_hmac
   ansible.builtin.replace:
     path: /usr/share/crypto-policies/policies/FIPS.pol
     regexp: 'HMAC-SHA1[, ]*'
@@ -627,7 +620,7 @@
   register: fips_outdated_hmac
   when: rhel8STIG_stigrule_230251_Manage
 
-- name: STIGrule_230251__remove_outdated_umac
+- name: stigrule_230251__remove_outdated_umac
   ansible.builtin.replace:
     path: /usr/share/crypto-policies/policies/FIPS.pol
     regexp: 'UMAC-128[, ]*'
@@ -635,7 +628,7 @@
   register: fips_outdated_umac
   when: rhel8STIG_stigrule_230251_Manage
 
-- name: STIGrule_230251__usr_share_update
+- name: stigrule_230251__update_opensshserver_approved_MACs
   ansible.builtin.replace:
     path: "{{ item }}"
     regexp: '(\s-oMACs=)[^\s]+'
@@ -646,13 +639,12 @@
     - /etc/crypto-policies/back-ends/opensshserver.config
   when: rhel8STIG_stigrule_230251_Manage
   register: usr_share_update_mac
-  notify: ssh_restart
 
-- name: STIGrule_230251__update_crypto_policy # noqa: command-instead-of-shell
+- name: stigrule_230251__update_crypto_policy # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_230251_Manage
     - >
@@ -665,7 +657,7 @@
   notify: reboot
 
 # V-230252 RHEL-08-010291
-- name: STIGrule_230252__remove_outdated_aes_128
+- name: stigrule_230252__remove_outdated_aes_128
   ansible.builtin.replace:
     path: /usr/share/crypto-policies/policies/FIPS.pol
     regexp: 'AES-128-CBC[, ]*'
@@ -673,7 +665,7 @@
   register: fips_outdated_aes128
   when: rhel8STIG_stigrule_230252_Manage
 
-- name: STIGrule_230252__remove_outdated_aes_256
+- name: stigrule_230252__remove_outdated_aes_256
   ansible.builtin.replace:
     path: /usr/share/crypto-policies/policies/FIPS.pol
     regexp: 'AES-256-CBC[, ]*'
@@ -681,10 +673,10 @@
   register: fips_outdated_aes256
   when: rhel8STIG_stigrule_230252_Manage
 
-- name: STIGrule_230252__usr_share_update
+- name: stigrule_230252__update_opensshserver_approved_ciphers
   ansible.builtin.replace:
     path: "{{ item }}"
-    regexp: '(\-oCiphers=)[^\s]+'
+    regexp: "(-oCiphers=)[^ ]*"
     replace: '\1aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes128-ctr'
   loop:
     - /usr/share/crypto-policies/FIPS/opensshserver.txt
@@ -694,11 +686,11 @@
   when: rhel8STIG_stigrule_230252_Manage
   notify: ssh_restart
 
-- name: STIGrule_230252__update_crypto_policy # noqa: command-instead-of-shell
+- name: stigrule_230252__update_crypto_policy # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_230252_Manage
     - >
@@ -710,8 +702,11 @@
   changed_when: rhel8STIG_stigrule_230252_update_crypto.rc == 0
   notify: reboot
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-230253
-- name: STIGrule_230253__use_strong_entropy
+- name: stigrule_230253__use_strong_entropy
   community.general.ini_file:
     path: /etc/sysconfig/sshd
     exclusive: true
@@ -728,8 +723,11 @@
     - rhel8STIG_stigrule_230253_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-230257
-- name: STIGrule_230257__chmod_system_cmds
+- name: stigrule_230257__chmod_system_cmds
   ansible.builtin.shell: |
     set -o pipefail
     find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin -type f \( -perm /g+w -o -perm /o+w  \) -exec ls -al {} + -exec chmod g-w,o-w {} + || true
@@ -738,7 +736,7 @@
   when: rhel8STIG_stigrule_230257_Manage
 
 # V-230258
-- name: STIGrule_230258__chown_system_cmds
+- name: stigrule_230258__chown_system_cmds
   ansible.builtin.shell: |
     set -o pipefail
     find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin -type f ! -user root -exec ls -al {} + -exec chown root {} + || true
@@ -747,7 +745,7 @@
   when: rhel8STIG_stigrule_230258_Manage
 
 # V-230259
-- name: STIGrule_230259__excluded_bin_paths
+- name: stigrule_230259__excluded_bin_paths
   ansible.builtin.set_fact:
     exclude_bin_paths: >-
       {{ rhel8STIG_stigrule_230259_ignore_dirs
@@ -788,7 +786,7 @@
   when:
     - rhel8STIG_stigrule_230259_Manage
 
-- name: STIGrule_230259__chgrp_bin
+- name: stigrule_230259__chgrp_bin
   ansible.builtin.shell: |
     set -o pipefail
     find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin {{ exclude_bin_cmd }} -type f {{ sys_grp_args }} -exec ls -al {} + -exec chgrp {{ rhel8STIG_stigrule_230259_chgrp_acct }} {} + || true
@@ -797,7 +795,7 @@
   when: rhel8STIG_stigrule_230259_Manage
 
 # V-230260 RHEL-08-010330
-- name: STIGrule_230260__chmod_lib_files
+- name: stigrule_230260__chmod_lib_files
   ansible.builtin.shell: |
     set -o pipefail
     find /lib /lib64 /usr/lib /usr/lib64 -type f -name '*.so*' \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
@@ -806,7 +804,7 @@
   when: rhel8STIG_stigrule_230260_Manage
 
 # V-230261 RHEL-08-010340
-- name: STIGrule_230261__chown_lib_files
+- name: stigrule_230261__chown_lib_files
   ansible.builtin.shell: |
     set -o pipefail
     find /lib /lib64 /usr/lib /usr/lib64 -type f -name '*.so*' ! -user root -exec ls -al {} + -exec chown root {} + || true
@@ -815,7 +813,7 @@
   when: rhel8STIG_stigrule_230261_Manage
 
 # V-230262 RHEL-08-010350
-- name: STIGrule_230261__chgrp_lib_files
+- name: stigrule_230261__chgrp_lib_files
   ansible.builtin.shell: |
     set -o pipefail
     find /lib /lib64 /usr/lib /usr/lib64 -type f -name '*.so*' ! -group root -exec ls -al {} + -exec chgrp root {} + || true
@@ -824,19 +822,19 @@
   when: rhel8STIG_stigrule_230262_Manage
 
 # V-230263 RHEL-08-010360
-- name: STIGrule_230263__ensure_aide_present
+- name: stigrule_230263__ensure_aide_present
   ansible.builtin.dnf:
     name: aide
     state: present
   when: rhel8STIG_stigrule_230263_Manage
 
-- name: STIGrule_230263__ensure_mailx_present
+- name: stigrule_230263__ensure_mailx_present
   ansible.builtin.dnf:
     name: mailx
     state: present
   when: rhel8STIG_stigrule_230263_Manage
 
-- name: STIGrule_230263__stat_cron_dirs_and_files
+- name: stigrule_230263__stat_cron_dirs_and_files
   ansible.builtin.shell: |
     set -o pipefail
     find /etc/crontab /etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/cron.monthly /var/spool/cron -type f -exec grep 'aide' {} \; || true
@@ -844,7 +842,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230263_Manage
 
-- name: STIGrule_230263__create_aide_cronjob
+- name: stigrule_230263__create_aide_cronjob
   ansible.builtin.cron:
     name: aide
     cron_file: /etc/cron.daily/aide
@@ -860,7 +858,7 @@
     - aide_cron_files.stdout | length == 0
 
 # V-230264 RHEL-08-010370
-- name: STIGrule_230264__stat_conf_files
+- name: stigrule_230264__stat_conf_files
   ansible.builtin.stat:
     path: "{{ item }}"
     get_checksum: false
@@ -871,7 +869,7 @@
   register: main_conf_stats
   when: rhel8STIG_stigrule_230264_Manage
 
-- name: STIGrule_230264__gpgcheck_main_conf_files
+- name: stigrule_230264__gpgcheck_main_conf_files
   community.general.ini_file:
     path: "{{ item.item }}"
     section: main
@@ -888,7 +886,7 @@
     - rhel8STIG_stigrule_230264_Manage
     - item.stat.exists
 
-- name: STIGrule_230264__find_repo_files
+- name: Find repo files
   ansible.builtin.find:
     paths: /etc/yum.repos.d
     patterns: "*.repo"
@@ -896,72 +894,78 @@
   register: repo_files
   when: rhel8STIG_stigrule_230264_Manage
 
-- name: STIGrule_230264__get_repo_sections
-  ansible.builtin.command: >
-    awk -F'[][]' '/^\s*\[.*\]\s*$/ {print $2}' {{ item.path }}
-  register: repo_sections_cmd
+- name: Read repo files
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
   loop: "{{ repo_files.files }}"
-  changed_when: false
+  register: repo_file_contents
+  no_log: true
   when:
     - rhel8STIG_stigrule_230264_Manage
-    - repo_files.files | length > 0
 
-- name: Build list of {path, section} dicts
+- name: Define regex filter for repo names
   ansible.builtin.set_fact:
-    repo_path_section_dicts: "{{ repo_path_section_dicts | default([]) + new_pairs }}"
-  vars:
-    new_pairs: >-
-      {{
-        item.stdout_lines
-        | map('community.general.dict_kv', 'section')
-        | map('combine', {'path': item.item.path})
-        | list
-      }}
-  loop: "{{ repo_sections_cmd.results }}"
-  loop_control:
-    label: "{{ item.item.path }}"
+    repo_section_regex: "\\[([^\\]]+?)\\]"
   when:
-    - false
     - rhel8STIG_stigrule_230264_Manage
-    - repo_sections_cmd.results | length > 0
 
-- name: STIGrule_230264__gpgcheck_main_conf_files
-  community.general.ini_file:
-    path: "{{ item.path }}"
-    section: "{{ item.section }}"
-    option: gpgcheck
-    value: 1
-    ignore_spaces: true
-    exclusive: true
-    follow: true
-    mode: '0644'
-    owner: root
-    group: root
-  loop: "{{ repo_path_section_dicts }}"
+- name: Build repo section map
+  ansible.builtin.set_fact:
+    repo_sections: >-
+      {{
+        repo_sections | default([]) +
+        [
+          {
+            'path': item.source,
+            'sections': (
+              item.content
+              | b64decode
+              | regex_findall(repo_section_regex)
+            )
+          }
+        ]
+      }}
+  loop: "{{ repo_file_contents.results }}"
+  no_log: true
   when:
-    - false
     - rhel8STIG_stigrule_230264_Manage
-    - repo_path_section_dicts is defined
+
+- name: stigrule_230264_set_gpgcheck
+  community.general.ini_file:
+    path: "{{ item.0.path }}"
+    section: "{{ item.1 }}"
+    option: gpgcheck
+    value: "{{ rhel8STIG_stigrule_230264_gpgcheck }}"
+    no_extra_spaces: false
+    ignore_spaces: true
+    create: false
+  loop: "{{ (repo_sections | default([])) | subelements('sections') }}"
+  loop_control:
+    label: "{{ item.0.path }} :: {{ item.1 }}"
+  #no_log: true
+  when:
+    - rhel8STIG_stigrule_230264_Manage
+    - repo_sections is defined
 
 # V-230271
-- name: STIGrule_230271__find_sudoers_files
+- name: stigrule_230271__find_sudoers_files
   ansible.builtin.find:
     paths: /etc/sudoers.d
     file_type: file
   register: sudoers_d_files
   when: rhel8STIG_stigrule_230271_Manage
 
-- name: STIGrule_230271__combine_Lists
+- name: stigrule_230271__combine_Lists
   ansible.builtin.set_fact:
     all_sudoers_files: "{{ ['/etc/sudoers'] + sudoers_d_files.files | map(attribute='path') | list }}"
   when: rhel8STIG_stigrule_230271_Manage
 
-- name: STIGrule_230271__create_regex_Filter
+- name: stigrule_230271__create_regex_Filter
   ansible.builtin.set_fact:
     known_sudoers: "{{ rhel8STIG_stigrule_230271_sudoers_nopasswd | map('regex_escape') | list | join('|') }}"
   when: rhel8STIG_stigrule_230271_Manage
 
-- name: STIGrule_230271__remove_NOPASSWD
+- name: stigrule_230271__remove_NOPASSWD
   ansible.builtin.replace:
     path: "{{ item }}"
     regexp: '^(?!\s*#)(?!\s*({{ known_sudoers }})\b)(.*)\s*NOPASSWD:'
@@ -979,7 +983,7 @@
   register: sudoers_d_files
   when: rhel8STIG_stigrule_230272_Manage
 
-- name: STIGrule_230272__remove_authenticate_from_sudoers
+- name: stigrule_230272__remove_authenticate_from_sudoers
   ansible.builtin.replace:
     path: /etc/sudoers
     regexp: '!authenticate'
@@ -987,7 +991,7 @@
     validate: '/usr/sbin/visudo -cf %s'
   when: rhel8STIG_stigrule_230272_Manage
 
-- name: STIGrule_230272__remove_authenticate_from_sudoers_d
+- name: stigrule_230272__remove_authenticate_from_sudoers_d
   ansible.builtin.replace:
     path: "{{ item.path }}"
     regexp: '!authenticate'
@@ -997,7 +1001,7 @@
   when: rhel8STIG_stigrule_230272_Manage
 
 # V-230274 RHEL-08-010400
-- name: STIGrule_230274__find_etc_sssd
+- name: stigrule_230274__find_etc_sssd_conf_files
   ansible.builtin.find:
     paths: /etc/sssd
     patterns: "*.conf"
@@ -1007,7 +1011,7 @@
   when:
     - rhel8STIG_stigrule_230274_Manage
 
-- name: STIGrule_230274__slurp_sssd
+- name: stigrule_230274__slurp_sssd_conf_files
   ansible.builtin.slurp:
     src: "{{ item.path }}"
   loop: "{{ sssd_matches.files }}"
@@ -1017,7 +1021,7 @@
     - rhel8STIG_stigrule_230274_Manage
     - sssd_matches is defined
 
-- name: STIGrule_230274__parse_sssd
+- name: stigrule_230274__parse_sssd_conf_files
   ansible.builtin.set_fact:
     parsed_sssd: >-
       {{
@@ -1033,17 +1037,16 @@
     - rhel8STIG_stigrule_230274_Manage
     - sssd_contents is defined
 
-- name: STIGrule_230274__enable_certificate_verification
+- name: stigrule_230274__normalize_sssd_conf_files
   community.general.ini_file:
     path: "{{ item.0.file }}"
     section: "sssd"
     option: "{{ item.1 }}"
     value: "ocsp_dgst=sha1"
-    ignore_spaces: false
-    # backup: true
+    ignore_spaces: true
     create: false
     follow: true
-    state: present
+    state: absent
   loop: >
         {{
         parsed_sssd
@@ -1057,10 +1060,12 @@
   when:
     - rhel8STIG_stigrule_230274_Manage
     - parsed_sssd is defined
+    - item.0.file != "/etc/sssd/sssd.conf"
+  diff: true
 
-- name: STIGrule_230274__create_certificate_verification
+- name: stigrule_230274__ensure_certificate_verification
   community.general.ini_file:
-    path: /etc/sssd/conf.d/certificate_verification.conf
+    path: /etc/sssd/sssd.conf
     section: "sssd"
     option: "certificate_verification"
     value: "ocsp_dgst=sha1"
@@ -1072,9 +1077,10 @@
     mode: '0600'
   when:
     - rhel8STIG_stigrule_230274_Manage
+  diff: true
 
 # V-230277 RHEL-08-010421
-- name: STIGrule_230277__grub2-editenv
+- name: Check grub2-editenv for page_poison
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1085,7 +1091,7 @@
   when:
     - rhel8STIG_stigrule_230277_Manage
 
-- name: STIGrule_230277__etc_default_grub
+- name: Check /etc/default/grub for page_poison
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1096,7 +1102,7 @@
   when:
     - rhel8STIG_stigrule_230277_Manage
 
-- name: STIGrule_230277__grub_add_page_poison
+- name: stigrule_230277__grub_add_page_poison
   ansible.builtin.replace:
     path: /etc/default/grub
     regexp: '^(GRUB_CMDLINE_LINUX=".*)"$'
@@ -1106,7 +1112,7 @@
     - grub_poison_check.rc != 0
   notify: grub2_update
 
-- name: STIGrule_230277__grub_update_page_poison
+- name: stigrule_230277__grub_update_page_poison
   ansible.builtin.replace:
     path: /etc/default/grub
     regexp: '(page_poison)(=|\s+)[^\s"]*'
@@ -1116,7 +1122,7 @@
     - grub_poison_check.rc == 0
   notify: grub2_update
 
-- name: STIGrule_230277__geubby_set_page_poison
+- name: stigrule_230277__grubby_set_page_poison
   ansible.builtin.command: "grubby --update-kernel=ALL --args='page_poison=1'"
   register: page_poison_result
   changed_when: page_poison_result.rc == 0
@@ -1126,7 +1132,7 @@
     - "'page_poison=1' not in grub2_poison_check.stdout"
 
 # V-230278 RHEL-08-010422
-- name: STIGrule_230278__grub2-editenv
+- name: Check grub2-editenv for vsyscall
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1138,7 +1144,7 @@
   when:
     - rhel8STIG_stigrule_230278_Manage
 
-- name: STIGrule_230278__etc_default_grub
+- name: Check /etc/default/grub for vsyscall
   ansible.builtin.command: grep -E 'vsyscall(=|[[:space:]])' /etc/default/grub
   register: grub_vsyscall_check
   changed_when: false
@@ -1146,7 +1152,7 @@
   when:
     - rhel8STIG_stigrule_230278_Manage
 
-- name: STIGrule_230278__grub_add_vsyscall
+- name: stigrule_230278__grub_add_vsyscall
   ansible.builtin.replace:
     path: /etc/default/grub
     regexp: '^(GRUB_CMDLINE_LINUX=".*)"$'
@@ -1156,7 +1162,7 @@
     - grub_vsyscall_check.rc != 0
   notify: grub2_update
 
-- name: STIGrule_230278__grub_set_vsyscall
+- name: stigrule_230278__grub_set_vsyscall
   ansible.builtin.replace:
     path: /etc/default/grub
     regexp: '(vsyscall)(=|\s+)[^\s"]*'
@@ -1166,7 +1172,7 @@
     - grub_vsyscall_check.rc == 0
   notify: grub2_update
 
-- name: STIGrule_230278__grub2_set_vsyscall
+- name: stigrule_230278__grubby_set_vsyscall
   ansible.builtin.command: "grubby --update-kernel=ALL --args='vsyscall=none'"
   register: vsyscall_result
   changed_when: vsyscall_result.rc == 0
@@ -1176,7 +1182,7 @@
     - "'vsyscall=none' not in grub2_vsyscall_check.stdout"
 
 # V-230279 RHEL-08-010423
-- name: STIGrule_230279__grub2-editenv
+- name: Check grub2-editenv for init_on_free
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1187,7 +1193,7 @@
   when:
     - rhel8STIG_stigrule_230279_Manage
 
-- name: STIGrule_230279__etc_default_grub
+- name: Check /etc/default/grub for init_on_free
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -1197,7 +1203,7 @@
   when:
     - rhel8STIG_stigrule_230279_Manage
 
-- name: STIGrule_230279__grub_add_init_on_free
+- name: stigrule_230279__grub_add_init_on_free
   ansible.builtin.replace:
     path: /etc/default/grub
     regexp: '^(GRUB_CMDLINE_LINUX=".*)"$'
@@ -1207,7 +1213,7 @@
     - grub_init_check.stdout | length == 0
   notify: grub2_update
 
-- name: STIGrule_230279__grub_set_init_on_free
+- name: stigrule_230279__grub_set_init_on_free
   ansible.builtin.replace:
     path: /etc/default/grub
     regexp: '(init_on_free)(=|\s+)[^\s"]*'
@@ -1217,7 +1223,7 @@
     - grub_init_check.stdout | length > 0
   notify: grub2_update
 
-- name: STIGrule_230279__grub2_set_slub_debug
+- name: stigrule_230279__grubby_set_init_on_free
   ansible.builtin.command: "grubby --update-kernel=ALL --args='init_on_free=1'"
   register: init_result
   changed_when: init_result.rc == 0
@@ -1226,8 +1232,11 @@
     - rhel8STIG_stigrule_230279_Manage
     - "'init_on_free=1' not in grub2_init_check.stdout"
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-230283 RHEL-08-010460
-- name: STIGrule_230283__find_shosts_equiv
+- name: Find shosts.equiv
   ansible.builtin.shell:
     cmd: find / -xdev -name shosts.equiv 2>/dev/null || true
     executable: /bin/bash
@@ -1235,7 +1244,7 @@
   changed_when: shosts_equiv_files.stdout_lines | length > 0
   when: rhel8STIG_stigrule_230283_Manage
 
-- name: STIGrule_230283__remove_shosts_equiv
+- name: stigrule_230283__remove_shosts_equiv
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
@@ -1272,99 +1281,72 @@
   notify: ssh_restart
   when: rhel8STIG_stigrule_230287_Manage
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
+# V-230292 RHEL-08-010540
+- name: Check /var partition
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 230292
+    disk_partition: /var
+  when:
+    - rhel8STIG_stigrule_230292_Manage
+
+# V-230293 RHEL-08-010541
+- name: Check /var/log partition
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 230293
+    disk_partition: /var/log
+  when:
+    - rhel8STIG_stigrule_230293_Manage
+
+# V-230294 RHEL-08-010542
+- name: Check /var/log/audit partition
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 230294
+    disk_partition: /var/log/audit
+  when:
+    - rhel8STIG_stigrule_230294_Manage
+
+# V-230295 RHEL-08-010543
+- name: Check /tmp partition
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 230295
+    disk_partition: /tmp
+  when:
+    - rhel8STIG_stigrule_230294_Manage
+
 # V-230299 RHEL-08-010570
-- name: STIGrule_230299__home_nosuid_etc_fstab
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      grep '{{ default_home_path }}' /etc/fstab || true
-  register: fstab_home_entry
-  changed_when: false
-  when:
-    - rhel8STIG_stigrule_230299_Manage
-
-- name: STIGrule_230299__fail_on_no_home_partition
-  ansible.builtin.fail:
-    msg: The user home directory '{{ default_home_path }}' is not on a seperate partition
-  when:
-    - rhel8STIG_stigrule_230299_Manage
-    - fstab_home_entry.rc != 0
-
-- name: STIGrule_230299__parse_fstab
-  ansible.builtin.set_fact:
-    fstab_home_fields: "{{ fstab_home_entry.stdout.split() }}"
-  when:
-    - rhel8STIG_stigrule_230299_Manage
-    - fstab_home_entry.rc == 0
-
-- name: STIGrule_230299__add_nosuid_home_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^(\S+\s+{{ default_home_path }}\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
-    line: >-
-      \g<1>{{
-        (
-          (
-            "\2".replace(" ", "").split(",")
-          ) +
-          (
-            ['nosuid'] if 'nosuid' not in "\2".replace(" ", "").split(",") else []
-          )
-        ) | join(",")
-      }}\3
-    backrefs: true
-  when:
-    - rhel8STIG_stigrule_230299_Manage
-    - fstab_home_entry.rc == 0
-    - fstab_home_entry | length != 0
-    - "'nosuid' not in fstab_home_fields[3]"
+- name: Set partion option 'nosuid' for {{ default_home_path }}
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 230299
+    disk_partition: "{{ default_home_path }}"
+    partition_option: nosuid
 
 # V-230300 RHEL-08-010571
-- name: STIGrule_230302__boot_nosuid_etc_fstab
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      grep '/boot' /etc/fstab || true
-  register: fstab_boot_entry
-  changed_when: false
+- name: Set partion option 'nosuid' for /boot
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 230300
+    disk_partition: /boot
+    partition_option: nosuid
   when:
     - rhel8STIG_stigrule_230300_Manage
     - boot_mode == "BIOS"
-
-- name: STIGrule_230300__parse_fstab
-  ansible.builtin.set_fact:
-    boot_fields: "{{ fstab_boot_entry.stdout.split() }}"
-  when:
-    - rhel8STIG_stigrule_230300_Manage
-    - boot_mode == "BIOS"
-    - fstab_boot_entry.rc == 0
-
-- name: STIGrule_230300__add_nosuid_boot_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^(\S+\s+/boot\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
-    line: >-
-      \g<1>{{
-        (
-          (
-            "\2".replace(" ", "").split(",")
-          ) +
-          (
-            ['nosuid'] if 'nosuid' not in "\2".replace(" ", "").split(",") else []
-          )
-        ) | join(",")
-      }}\3
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230300_Manage
-    - boot_mode == "BIOS"
-    - fstab_boot_entry.rc == 0
-    - fstab_boot_entry | length != 0
-    - "'nosuid' not in boot_fields[3]"
 
 # V-230301 RHEL-08-010580
-- name: stigrule_230301__get_fstab_entries_missing_nodev
+- name: Find non-root partitions missing 'nodev' option
   ansible.builtin.shell:
     cmd: >
       awk '
@@ -1390,104 +1372,27 @@
   changed_when: false
   when: rhel8STIG_stigrule_230301_Manage
 
-- name: stigrule_230301__set_fact_mounts_missing_nodev
-  ansible.builtin.set_fact:
-    rhel8STIG_stigrule_230301_target_mounts: >-
-      {{
-        rhel8STIG_stigrule_230301_mounts_missing_nodev.stdout_lines
-        | reject('equalto', '')
-        | list
-      }}
-  when: rhel8STIG_stigrule_230301_Manage
-
-- name: stigrule_230301__add_nodev_to_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^(\S+\s+{{ item | regex_escape }}\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
-    line: >-
-      \g<1>{{
-        (
-          (
-            "\2".replace(" ", "").split(",")
-          ) +
-          (
-            ['nosuid'] if 'nosuid' not in "\2".replace(" ", "").split(",") else []
-          )
-        ) | join(",")
-      }}\3
-    backrefs: true
-  loop: "{{ rhel8STIG_stigrule_230301_target_mounts | default([]) }}"
+- name: Set partition option 'nodev' for non-root local partitions
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 230301
+    partition_option: nodev
+  loop: "{{ rhel8STIG_stigrule_230301_mounts_missing_nodev.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230301_Manage
-    - (rhel8STIG_stigrule_230301_target_mounts | default([]) | length) > 0
-  register: rhel8STIG_stigrule_230301_fstab_changes
-
-- name: stigrule_230301__remount_partitions_with_nodev
-  ansible.posix.mount:
-    path: "{{ item }}"
-    state: remounted
-  loop: "{{ rhel8STIG_stigrule_230301_target_mounts | default([]) }}"
-  when:
-    - rhel8STIG_stigrule_230301_Manage
-    - (rhel8STIG_stigrule_230301_target_mounts | default([]) | length) > 0
-
-#- name: stigrule_230301__remount_partitions_with_nodev # noqa: command-instead-of-module
-#  ansible.builtin.command:
-#    cmd: "mount -o remount {{ item }}"
-#  loop: "{{ rhel8STIG_stigrule_230301_target_mounts | default([]) }}"
-#  when:
-#    - rhel8STIG_stigrule_230301_Manage
-#    - (rhel8STIG_stigrule_230301_target_mounts | default([]) | length) > 0
-#  register: remount_result
-#  changed_when: remount_result.rc == 0
+    - rhel8STIG_stigrule_230301_mounts_missing_nodev.stdout_lines | length > 0
 
 # V-230302 RHEL-08-010590
-- name: STIGrule_230302__home_noexec_etc_fstab
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      grep '{{ default_home_path }}' /etc/fstab || true
-  register: fstab_noexec_entry
-  changed_when: false
-  when:
-    - rhel8STIG_stigrule_230302_Manage
-
-- name: STIGrule_230302__fail_on_no_home_partition
-  ansible.builtin.fail:
-    msg: The user home directory '{{ default_home_path }}' is not on a seperate partition
-  when:
-    - rhel8STIG_stigrule_230302_Manage
-    - fstab_noexec_entry.rc != 0
-
-- name: STIGrule_230302__parse_fstab
-  ansible.builtin.set_fact:
-    noexec_fields: "{{ fstab_noexec_entry.stdout.split() }}"
-  when:
-    - rhel8STIG_stigrule_230302_Manage
-    - fstab_noexec_entry.rc == 0
-
-- name: STIGrule_230302__add_noexec_home_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^(\S+\s+{{ default_home_path }}\s+\S+\s+)(\S+)(\s+\S+\s+\S+)$'
-    line: >-
-      \g<1>{{
-        (
-          (
-            "\2".replace(" ", "").split(",")
-          ) +
-          (
-            ['noexec'] if 'noexec' not in "\2".replace(" ", "").split(",") else []
-          )
-        ) | join(",")
-      }}\3
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230302_Manage
-    - fstab_noexec_entry.rc == 0
-    - fstab_noexec_entry | length != 0
-    - "'noexec' not in noexec_fields[3]"
+- name: Set partition option 'noexec' for '{{ default_home_path }}' partition # noqa: name[template]
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: "{{ default_home_path }}"
+    stig_rule_id: 230302
+    partition_option: noexec
+  when: rhel8STIG_stigrule_230302_Manage
 
 # V-230303 RHEL-08-010600
 - name: Get block devices
@@ -1496,13 +1401,13 @@
   changed_when: false
   no_log: true
 
-- name: Parse lsblk json output
+- name: Parse block device output
   ansible.builtin.set_fact:
     lsblk_data: "{{ lsblk_out.stdout | from_json }}"
   when:
     - lsblk_out is defined and lsblk_out | length > 0
 
-- name: Find removable devices
+- name: Define removable disks
   ansible.builtin.set_fact:
     removable_devices: >-
       {{
@@ -1510,274 +1415,121 @@
         | selectattr('rm', 'equalto', '1')
         | list
       }}
-  when:
-    - lsblk_data is defined and lsblk_data | length > 0
 
-- name: Get removable device mount point
+- name: Define mount points for removable disks and partitions
   ansible.builtin.set_fact:
     removable_mounts: >-
       {{
-        removable_devices
-        | map(attribute='children')
-        | select('defined')
-        | sum(start=[])
-        | selectattr('mountpoint', 'defined')
-        | rejectattr('mountpoint', 'equalto', None)
+        (
+          removable_devices
+          | selectattr('mountpoint', 'defined')
+          | rejectattr('mountpoint', 'equalto', None)
+        )
+        +
+        (
+          removable_devices
+          | map(attribute='children')
+          | select('defined')
+          | sum(start=[])
+          | selectattr('mountpoint', 'defined')
+          | rejectattr('mountpoint', 'equalto', None)
+        )
+        | map(attribute='mountpoint')
         | list
       }}
   when:
-    - removable_devices is defined and removable_devices | length > 0
+    - removable_devices | length > 0
 
-- name: STIGrule_230303__get_removable_device_fstab_info
-  ansible.builtin.shell: |
-    awk '$2 == "{{ item.mountpoint }}" { print }' /etc/fstab
-  args:
-    executable: /bin/bash
-  register: fstab_nodev_entries
+- name: Set partition option 'nodev' for removable partitions
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 230303
+    partition_option: nodev
   loop: "{{ removable_mounts }}"
-  loop_control:
-    label: "{{ item.mountpoint }}"
-  changed_when: false
   when:
     - rhel8STIG_stigrule_230303_Manage
-    - removable_mounts is defined and removable_mounts | length > 0
-
-- name: STIGrule_230303__build_updated_mount_entry
-  ansible.builtin.set_fact:
-    fstab_nodev_updates: >-
-      {{
-        fstab_nodev_updates | default([]) + [ {
-          'mountpoint': item.item.mountpoint,
-          'device': (item.stdout.split()[0] | default('')),
-          'fstype': (item.stdout.split()[2] | default('')),
-          'opts_new': (
-            (
-              item.stdout.split()[3] | default('defaults')
-            )
-            | split(',')
-            | reject('equalto', '')
-            | list
-            + ['nodev']
-          ) | unique | join(',')
-        } ]
-      }}
-  loop: "{{ fstab_nodev_entries.results }}"
-  loop_control:
-    label: "{{ item.item.mountpoint }}"
-  when:
-    - rhel8STIG_stigrule_230303_Manage
-    - fstab_nodev_entries is defined
-    - item.stdout is defined
-    - item.stdout | length > 0
-
-- name: STIGrule_230303__update_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    # backup: true
-    backrefs: true
-    regexp: '^(\S+\s+{{ item.mountpoint | regex_escape }}\s+\S+\s+)(\S+)(\s+.*)$'
-    line: '\1{{ item.opts_new }}\3'
-  loop: "{{ fstab_nodev_updates }}"
-  loop_control:
-    label: "{{ item.mountpoint }}"
-  when:
-    - rhel8STIG_stigrule_230303_Manage
-    - fstab_nodev_updates is defined
+    - removable_mounts is defined
 
 # V-230304 RHEL-08-010610
-- name: STIGrule_230304__get_removable_device_fstab_info
-  ansible.builtin.shell: |
-    awk '$2 == "{{ item.mountpoint }}" { print }' /etc/fstab
-  args:
-    executable: /bin/bash
-  register: fstab_noexec_entries
+- name: Set partition option 'noexec' for removable partitions
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 230304
+    partition_option: noexec
   loop: "{{ removable_mounts }}"
-  loop_control:
-    label: "{{ item.mountpoint }}"
-  changed_when: false
   when:
     - rhel8STIG_stigrule_230304_Manage
-    - removable_mounts is defined and removable_mounts | length > 0
-
-- name: STIGrule_230304__build_updated_mount_entry
-  ansible.builtin.set_fact:
-    fstab_noexec_updates: >-
-      {{
-        fstab_noexec_updates | default([]) + [ {
-          'mountpoint': item.item.mountpoint,
-          'device': (item.stdout.split()[0] | default('')),
-          'fstype': (item.stdout.split()[2] | default('')),
-          'opts_new': (
-            (
-              item.stdout.split()[3] | default('defaults')
-            )
-            | split(',')
-            | reject('equalto', '')
-            | list
-            + ['noexec']
-          ) | unique | join(',')
-        } ]
-      }}
-  loop: "{{ fstab_noexec_entries.results }}"
-  loop_control:
-    label: "{{ item.item.mountpoint }}"
-  when:
-    - rhel8STIG_stigrule_230304_Manage
-    - fstab_noexec_entries is defined
-    - item.stdout is defined
-    - item.stdout | length > 0
-
-- name: STIGrule_230304__update_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    # backup: true
-    backrefs: true
-    regexp: '^(\S+\s+{{ item.mountpoint | regex_escape }}\s+\S+\s+)(\S+)(\s+.*)$'
-    line: '\1{{ item.opts_new }}\3'
-  loop: "{{ fstab_noexec_updates }}"
-  loop_control:
-    label: "{{ item.mountpoint }}"
-  when:
-    - rhel8STIG_stigrule_230304_Manage
-    - fstab_noexec_updates is defined
+    - removable_mounts is defined
 
 # V-230305 RHEL-08-010620
-- name: STIGrule_230305__get_removable_device_fstab_info
-  ansible.builtin.shell: |
-    awk '$2 == "{{ item.mountpoint }}" { print }' /etc/fstab
-  args:
-    executable: /bin/bash
-  register: fstab_nosuid_entries
+- name: Set partition option 'nosuid' for removable partitions
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 230305
+    partition_option: nosuid
   loop: "{{ removable_mounts }}"
-  loop_control:
-    label: "{{ item.mountpoint }}"
-  changed_when: false
   when:
     - rhel8STIG_stigrule_230305_Manage
-    - removable_mounts is defined and removable_mounts | length > 0
-
-- name: STIGrule_230305__build_updated_mount_entry
-  ansible.builtin.set_fact:
-    fstab_nosuid_updates: >-
-      {{
-        fstab_nosuid_updates | default([]) + [ {
-          'mountpoint': item.item.mountpoint,
-          'device': (item.stdout.split()[0] | default('')),
-          'fstype': (item.stdout.split()[2] | default('')),
-          'opts_new': (
-            (
-              item.stdout.split()[3] | default('defaults')
-            )
-            | split(',')
-            | reject('equalto', '')
-            | list
-            + ['nosuid']
-          ) | unique | join(',')
-        } ]
-      }}
-  loop: "{{ fstab_nosuid_entries.results }}"
-  loop_control:
-    label: "{{ item.item.mountpoint }}"
-  when:
-    - rhel8STIG_stigrule_230305_Manage
-    - fstab_nosuid_entries is defined
-    - item.stdout is defined
-    - item.stdout | length > 0
-
-- name: STIGrule_230305__update_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    # backup: true
-    backrefs: true
-    regexp: '^(\S+\s+{{ item.mountpoint | regex_escape }}\s+\S+\s+)(\S+)(\s+.*)$'
-    line: '\1{{ item.opts_new }}\3'
-  loop: "{{ fstab_nosuid_updates }}"
-  loop_control:
-    label: "{{ item.mountpoint }}"
-  when:
-    - rhel8STIG_stigrule_230305_Manage
-    - fstab_nosuid_updates is defined
+    - removable_mounts is defined
 
 # V-230306 RHEL-08-010630
-- name: Check /etc/fstab for nfs
-  ansible.builtin.command: grep nfs /etc/fstab
-  register: fstab_nfs_entry
-  changed_when: false
-  failed_when: false
-
-- name: Serialize nfs fstab data
+- name: Find NFS mount points from ansible_mounts
   ansible.builtin.set_fact:
-    nfs_fstab_fields: "{{ fstab_nfs_entry.stdout_lines | map('split') | list }}"
-  when:
-    - fstab_nfs_entry.rc == 0
-    - fstab_nfs_entry.stdout | length > 0
+    nfs_mounts: >-
+      {{
+        ansible_mounts
+        | selectattr('fstype', 'search', '^nfs')
+        | map(attribute='mount')
+        | list
+      }}
 
-- name: STIGrule_230306__add_noexec_nfs_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+{{ item[1] }}\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,noexec\3'
-    backrefs: true
-  loop: "{{ nfs_fstab_fields }}"
+- name: Set partition option 'noexec' for NFS mounts
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 230306
+    partition_option: noexec
+  loop: "{{ nfs_mounts }}"
   when:
     - rhel8STIG_stigrule_230306_Manage
-    - fstab_nfs_entry.rc == 0
-    - fstab_nfs_entry | length != 0
-    - "'noexec' not in item[3]"
-    - item[1] not in rhel8STIG_stigrule_230306_ignore_dirs
+    - nfs_mounts | length > 0
+    - item not in rhel8STIG_stigrule_230306_ignore_paths
 
 # V-230307 RHEL-08-010640
-- name: STIGrule_230307__add_nodev_nfs_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+{{ item[1] }}\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nodev\3'
-    backrefs: true
-  loop: "{{ nfs_fstab_fields }}"
+- name: Set partition option 'nodev' for NFS mounts
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 230307
+    partition_option: nodev
+  loop: "{{ nfs_mounts }}"
   when:
-    - rhel8STIG_stigrule_230307_Manage
-    - fstab_nfs_entry.rc == 0
-    - fstab_nfs_entry | length != 0
-    - "'nodev' not in item[3]"
-    - item[1] not in rhel8STIG_stigrule_230307_ignore_dirs
+    - rhel8STIG_stigrule_230306_Manage
+    - item not in rhel8STIG_stigrule_230307_ignore_paths
 
 # V-230308 RHEL-08-010650
-- name: STIGrule_230308__add_nosuid_nfs_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+{{ item[1] }}\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
-    backrefs: true
-    # backup: true
-  loop: "{{ nfs_fstab_fields }}"
+- name: Set partition option 'nosuid' for NFS mounts
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 230308
+    partition_option: nosuid
+  loop: "{{ nfs_mounts }}"
   when:
-    - rhel8STIG_stigrule_230308_Manage
-    - fstab_nfs_entry.rc == 0
-    - fstab_nfs_entry | length != 0
-    - "'nosuid' not in item[3]"
-    - item[1] not in rhel8STIG_stigrule_230308_ignore_dirs
-
-- name: Find local partitions
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      lsblk -nlo MOUNTPOINT | awk 'NF'
-    executable: /bin/bash
-  register: local_partions
-  changed_when: false
+    - rhel8STIG_stigrule_230306_Manage
+    - item not in rhel8STIG_stigrule_230308_ignore_paths
 
 # V-230312 RHEL-08-010672
-- name: STIGrule_230312__check_kernel_dump
-  ansible.posix.sysctl:
-    name: kernel.core_pattern
-    value: "|/bin/false"
-    reload: false
-  check_mode: true
-  register: kernel_dump
-  when:
-    - rhel8STIG_stigrule_230312_Manage
-
-- name: STIGrule_230312__disable_systemd-coredump_socket
+- name: stigrule_230312__disable_systemd-coredump_socket
   ansible.builtin.systemd_service:
     name: systemd-coredump.socket
     state: stopped
@@ -1785,23 +1537,22 @@
     masked: true
   when:
     - rhel8STIG_stigrule_230312_Manage
-    - kernel_dump.changed
 
 # V-230316
-- name: STIGrule_230316__read_etc_nsswitch.conf
+- name: Read /etc/nsswitch.conf
   ansible.builtin.slurp:
     src: /etc/nsswitch.conf
   register: nsswitch_raw
   no_log: true
   when: rhel8STIG_stigrule_230316_Manage
 
-- name: STIGrule_230316__decode_etc_nsswitch.conf_content
+- name: Decode /etc/nsswitch.conf content
   ansible.builtin.set_fact:
     nsswitch_conf: "{{ nsswitch_raw.content | b64decode }}"
   no_log: true
   when: rhel8STIG_stigrule_230316_Manage
 
-- name: STIGrule_230316__determine_if_dns_client
+- name: Determine if dns client
   ansible.builtin.set_fact:
     dns_client: >-
       {{
@@ -1825,7 +1576,7 @@
   when:
     - rhel8STIG_stigrule_230316_Manage
 
-- name: STIGrule_230316__Check if NetworkManager service is present
+- name: Check if NetworkManager service is present
   ansible.builtin.systemd:
     name: NetworkManager
   register: nm_service
@@ -1834,24 +1585,24 @@
     - rhel8STIG_stigrule_230316_Manage
     - "'hosts' in nsswitch_conf.stdout"
 
-- name: STIGrule_230316__Stat /etc/resolv.conf
+- name: Stat /etc/resolv.conf
   ansible.builtin.stat:
     path: /etc/resolv.conf
     get_checksum: false
     get_mime: false
   register: resolv_stat
 
-- name: STIGrule_230316__Check if /etc/resolv.conf is immutable (chattr +i)
+- name: Check if /etc/resolv.conf is immutable (chattr +i)
   ansible.builtin.command: lsattr -d /etc/resolv.conf
   register: resolv_attr
   changed_when: false
   failed_when: resolv_attr.rc != 0
 
-- name: STIGrule_230316__Extract immutable flag
+- name: Extract immutable flag
   ansible.builtin.set_fact:
     resolv_immutable: "{{ 'i' in (resolv_attr.stdout.split() | first) }}"
 
-- name: STIGrule_230316__Collect NetworkManager config text
+- name: Collect NetworkManager config text
   ansible.builtin.shell: |
     set -o pipefail
     {
@@ -1872,7 +1623,7 @@
     - nm_service.status is defined
   no_log: true
 
-- name: STIGrule_230316__Parse global dns= and rc-manager= from config
+- name: Parse global dns= and rc-manager= from config
   ansible.builtin.set_fact:
     nm_dns_setting: >-
       {{
@@ -1888,36 +1639,36 @@
       }}
 
 
-- name: STIGrule_230316__Get NetworkManager compiled config (if available)
+- name: Get NetworkManager compiled config (if available)
   ansible.builtin.command: NetworkManager --print-config
   register: nm_print_config
   changed_when: false
   failed_when: false
 
-- name: STIGrule_230316__Parse effective dns= and rc-manager= from --print-config
+- name: Parse effective dns= and rc-manager= from --print-config
   ansible.builtin.set_fact:
     nm_effective_dns: >-
       {{ (nm_print_config.stdout | regex_findall('(?m)^\\s*dns\\s*=\\s*(\\S+)', '\\1')) | default(nm_dns_setting, true) }}
     nm_effective_rc_manager: >-
       {{ (nm_print_config.stdout | regex_findall('(?m)^\\s*rc-manager\\s*=\\s*(\\S+)', '\\1')) | default(nm_rc_manager_setting, true) }}
 
-- name: STIGrule_230316__Query nmcli general DNS mode (if supported)
+- name: Query nmcli general DNS mode (if supported)
   ansible.builtin.command: nmcli general
   register: nmcli_general
   changed_when: false
   failed_when: false
 
-- name: STIGrule_230316__Filter for DNS info
+- name: Filter for DNS info
   ansible.builtin.set_fact:
     nmcli_dns_mode_line: >-
       {{ (nmcli_general.stdout_lines | select('search', 'DNS:') | list | first | default('')) }}
 
-- name: STIGrule_230316__Derive nmcli-reported DNS behavior
+- name: Derive nmcli-reported DNS behavior
   ansible.builtin.set_fact:
     nmcli_dns_mode: >-
       {{ (nmcli_dns_mode_line | regex_findall('DNS:\\s*(\\S+)', '\\1')) | default('', true) }}
 
-- name: STIGrule_230316__Report if NetworkManger is disabled and state why
+- name: Report if NetworkManger is disabled and state why
   ansible.builtin.set_fact:
     nm_dns_disabled_reasons: >-
       {{
@@ -1928,11 +1679,11 @@
         + (['nmcli DNS mode is none'] if (nmcli_dns_mode | lower) in ['none', 'unmanaged'] else [])
       }}
 
-- name: STIGrule_230316__Set final DNS managed flag
+- name: Set final DNS managed flag
   ansible.builtin.set_fact:
     nm_manages_dns: "{{ nm_dns_disabled_reasons | length == 0 and (nm_service.status is defined) | default(false) }}"
 
-- name: STIGrule_230316__Show DNS management evaluation
+- name: Show DNS management evaluation
   ansible.builtin.debug:
     msg:
       nm_present: "{{ nm_service.status is defined | default(false) }}"
@@ -1944,7 +1695,7 @@
       nm_dns_disabled_reasons: "{{ nm_dns_disabled_reasons }}"
       nm_manages_dns: "{{ nm_manages_dns }}"
 
-- name: STIGrule_230316__create_empty_etc_resolv.conf_for_local_resolution
+- name: stigrule_230316__create_empty_etc_resolv.conf_for_local_resolution
   ansible.builtin.copy:
     dest: /etc/resolv.conf
     content: ''
@@ -1955,7 +1706,7 @@
     - rhel8STIG_stigrule_230316_Manage
     - not dns_client
 
-- name: STIGrule_230316__get_NetworkManager_connections
+- name: Get NetworkManager connections
   ansible.builtin.shell: |
       set -o pipefail
       nmcli -t -f DEVICE,TYPE,STATE dev status \
@@ -1971,7 +1722,7 @@
     - rhel8STIG_stigrule_230316_Manage
     - nm_manages_dns
 
-- name: STIGrule_230316__parse_NetworkManager_connections
+- name: Parse NetworkManager connections
   ansible.builtin.set_fact:
     nm_connections: >-
       {{
@@ -1988,7 +1739,7 @@
   ansible.builtin.set_fact:
     dns_interface: rhel8STIG_stigrule_230316_dns_interface  "{{ rhel8STIG_stigrule_230316_dns_interface | default(nm_connections[0].name, true) }}"
 
-- name: STIGrule_230316__read_etc_resolv.conf
+- name: Read /etc/resolv.conf
   ansible.builtin.slurp:
     src: /etc/resolv.conf
   register: resolv_raw
@@ -1997,14 +1748,14 @@
     - rhel8STIG_stigrule_230316_Manage
     - dns_client
 
-- name: STIGrule_230316__extract_nameserver
+- name: Extract nameserver
   ansible.builtin.set_fact:
     resolv_lines: "{{ resolv_raw.content | b64decode | split('\n') }}"
   when:
     - rhel8STIG_stigrule_230316_Manage
     - dns_client
 
-- name: STIGrule_230316__determine_current_nameservers
+- name: Determine current nameservers
   ansible.builtin.set_fact:
     current_dns_servers: >-
       {{
@@ -2018,7 +1769,7 @@
     - rhel8STIG_stigrule_230316_Manage
     - dns_client
 
-- name: STIGrule_230316__set_dns_with_nmcli_on_defined_interface
+- name: stigrule_230316__set_dns_with_nmcli_on_defined_interface
   ansible.builtin.command:
     cmd: nmcli con mod {{ dns_interface }} ipv4.dns "{{ rhel8STIG_stigrule_230316_nameservers | join(' ') }}"
   register: nmcli_dns_result
@@ -2031,7 +1782,7 @@
   notify: NetworkManager_restart
   check_mode: true
 
-- name: STIGrule_230316__ignore_dns_from_dhcp_on_defined_interface
+- name: stigrule_230316__ignore_dns_from_dhcp_on_defined_interface
   ansible.builtin.command:
     cmd: nmcli con mod "{{ dns_interface }}" ipv4.ignore-auto-dns yes
   register: nmcli_dhcp_result
@@ -2043,7 +1794,7 @@
     - nm_connections[0].ignore_auto_dns == "no"
   notify: NetworkManager_restart
 
-- name: STIGrule_230316__get_dns_from_dhcp_on_defined_interface
+- name: stigrule_230316__get_dns_from_dhcp_on_defined_interface
   ansible.builtin.command:
     cmd: nmcli con mod "{{ dns_interface }}" ipv4.ignore-auto-dns no
   register: nmcli_dhcp_result
@@ -2055,7 +1806,7 @@
     - nm_connections[0].ignore_auto_dns == "yes"
   notify: NetworkManager_restart
 
-- name: STIGrule_230316__remove_old_nameservers_from_etc_resolv.conf
+- name: stigrule_230316__remove_old_nameservers_from_etc_resolv.conf
   ansible.builtin.lineinfile:
     path: /etc/resolv.conf
     state: absent
@@ -2065,7 +1816,7 @@
     - not nm_manages_dns
     - current_dns_servers != rhel8STIG_stigrule_230316_nameservers
 
-- name: STIGrule_230316__update_etc_resolv.conf
+- name: stigrule_230316__update_etc_resolv.conf
   ansible.builtin.lineinfile:
     path: /etc/resolv.conf
     line: "nameserver {{ item }}"
@@ -2079,8 +1830,11 @@
     - not nm_manages_dns
     - current_dns_servers != rhel8STIG_stigrule_230316_nameservers
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-230317
-- name: STIGrule_230317__define_etc_skel_bashrc
+- name: stigrule_230317__define_etc_skel_bashrc
   ansible.builtin.copy:
     owner: root
     group: root
@@ -2089,13 +1843,13 @@
     content: "{{ rhel8STIG_stigrule_230317_dot_bashrc }}"
   when: rhel8STIG_stigrule_230317_Manage
 
-- name: STIGrule_230317__find_user_bashrc_files
+- name: Find user bashrc files
   ansible.builtin.shell: find {{ default_home_path }}/* -maxdepth 2 -type f ! -type l -name '.bashrc' 2>/dev/null || true
   register: STIGrule_230317_bashrc_files
   when: rhel8STIG_stigrule_230317_Manage
   changed_when: false
 
-- name: STIGrule_230317__define_user_dot_bashrc
+- name: stigrule_230317__define_user_dot_bashrc
   ansible.builtin.copy:
     mode: '0700'
     dest: "{{ item }}"
@@ -2108,95 +1862,91 @@
     - (item | split('/'))[1] not in rhel8STIG_stigrule_230317_exempt_users
 
 # V-230318
-- name: STIGrule_230318__excluded_paths
+- name: Find local partitions
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      lsblk -nlo MOUNTPOINT | awk 'NF'
+    executable: /bin/bash
+  register: local_partions
+  changed_when: false
+
+- name: Define excluded world-writable paths
   ansible.builtin.set_fact:
-    exclude_ww_paths: >-
+    exclude_chown_ww_paths: >-
       {{ rhel8STIG_stigrule_230318_ignore_dirs
         | map('regex_replace', '^(.*)$', "-path '\1'")
         | join(' -o ')
       }}
   when: rhel8STIG_stigrule_230318_Manage
 
-- name: STIGrule_230318__add_prune_argument
+- name: Add prune argument for excluded world-writable paths
   ansible.builtin.set_fact:
-    exclude_ww_cmd: '\( {{ exclude_ww_paths }} \) -prune -o'
+    exclude_chown_ww_cmd: '\( {{ exclude_chown_ww_paths }} \) -prune -o'
   when:
     - rhel8STIG_stigrule_230318_Manage
-    - exclude_ww_paths is defined
-    - exclude_ww_paths | length > 0
+    - exclude_chown_ww_paths is defined
+    - exclude_chown_ww_paths | length > 0
 
-- name: STIGrule_230318__set_empty_var
+- name: Set empty var when no world-writable paths excluded
   ansible.builtin.set_fact:
-    exclude_ww_cmd: ''
+    exclude_chown_ww_cmd: ''
   when:
     - rhel8STIG_stigrule_230318_Manage
-    - exclude_ww_paths is not defined or exclude_ww_paths | length == 0
+    - exclude_chown_ww_paths is not defined or exclude_chown_ww_paths | length == 0
 
-- name: STIGrule_230318__chown_world_writable
+- name: stigrule_230318__chown_world_writable
   ansible.builtin.shell: |
     set -o pipefail
-    find {{ item }} -xdev {{ exclude_ww_cmd }} -type d -perm -0002 -uid +999 -exec ls -al {} + -exec chown root {} + || true
+    find {{ item }} -xdev {{ exclude_chown_ww_cmd }} -type d -perm -0002 -uid +999 -exec ls -al {} + -exec chown root {} + || true
   loop: "{{ local_partions.stdout_lines }}"
   register: chown_ww_part
   changed_when: chown_ww_part.stdout | length > 0
   when: rhel8STIG_stigrule_230318_Manage
 
 # V-230319
-- name: STIGrule_230319__excluded_paths
+- name: Define excluded world-writable paths
   ansible.builtin.set_fact:
-    exclude_ww_paths: >-
+    exclude_chgrp_ww_paths: >-
       {{ rhel8STIG_stigrule_230319_ignore_dirs
         | map('regex_replace', '^(.*)$', "-path '\1'")
         | join(' -o ')
       }}
   when: rhel8STIG_stigrule_230319_Manage
 
-- name: STIGrule_230319__add_prune_argument
+- name: Add prune argument
   ansible.builtin.set_fact:
-    exclude_ww_cmd: '\( {{ exclude_ww_paths }} \) -prune -o'
+    exclude_chgrp_ww_cmd: '\( {{ exclude_chgrp_ww_paths }} \) -prune -o'
   when:
     - rhel8STIG_stigrule_230319_Manage
-    - exclude_ww_paths is defined
-    - exclude_ww_paths | length > 0
+    - exclude_chgrp_ww_paths is defined
+    - exclude_chgrp_ww_paths | length > 0
 
-- name: STIGrule_230319__set_empty_var
+- name: Set empty var
   ansible.builtin.set_fact:
-    exclude_ww_cmd: ''
+    exclude_chgrp_ww_cmd: ''
   when:
     - rhel8STIG_stigrule_230319_Manage
-    - exclude_ww_paths is not defined or exclude_ww_paths | length == 0
+    - exclude_chgrp_ww_paths is not defined or exclude_chgrp_ww_paths | length == 0
 
-- name: STIGrule_230319__chgrp_world_writable
+- name: stigrule_230319__chgrp_world_writable
   ansible.builtin.shell: |
     set -o pipefail
-    find {{ item }} -xdev {{ exclude_ww_cmd }} -type d -perm -0002 -gid +999 -exec ls -ald {} + -exec chgrp root {} + || true
+    find {{ item }} -xdev {{ exclude_chgrp_ww_cmd }} -type d -perm -0002 -gid +999 -exec ls -ald {} + -exec chgrp root {} + || true
   loop: "{{ local_partions.stdout_lines }}"
   register: chgrp_ww_part
   changed_when: chgrp_ww_part.stdout | length > 0
   when: rhel8STIG_stigrule_230319_Manage
 
 # V-230320
-- name: Get user account info
-  ansible.builtin.getent:
-    database: passwd
-  register: getent_passwd
-
-- name: Update interactive user list
-  ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] }}"
-  loop: "{{ ansible_facts.getent_passwd | dict2items }}"
-  when:
-    - item.value is sequence
-    - item.value[1] | int >= 1000
-    - "'nologin' not in item.value[4]"
-    - item.value[4] != "/"
+- ansible.builtin.include_tasks: # noqa: name[missing]
+    file: interactive_users.yml
 
 - name: Print list of discovered interactive users
   ansible.builtin.debug:
-    var: "{{ item.key }}"
-  loop: "{{ interactive_user_list }}"
+    msg: "{{ interactive_user_list | map(attribute='key') | list | join(', ') }}"
 
-- name: STIGrule_230320__assign_home_directory
+- name: stigrule_230320__assign_home_directory
   ansible.builtin.user:
     name: "{{ item.key }}"
     home: "{{ default_home_path }}/{{ item.key }}"
@@ -2207,22 +1957,10 @@
     - item.value[4] | length == 0
 
 # V-230321
-- name: Get user account info
-  ansible.builtin.getent:
-    database: passwd
-  register: getent_passwd
+- ansible.builtin.include_tasks: # noqa: name[missing]
+    file: interactive_users.yml
 
-- name: Update interactive user list
-  ansible.builtin.set_fact:
-    interactive_user_list: "{{ interactive_user_list | default([]) + [item] }}"
-  loop: "{{ ansible_facts.getent_passwd | dict2items }}"
-  when:
-    - item.value is sequence
-    - item.value[1] | int >= 1000
-    - "'nologin' not in item.value[4]"
-    - item.value[4] != "/"
-
-- name: STIGrule_230321__chmod_user_home
+- name: stigrule_230321__chmod_user_home
   ansible.builtin.shell: |
     set -o pipefail
     find {{ item.value[4] }}/ -maxdepth 0 -type d  \( -perm /g+w -o -perm /o+r -o -perm /o+w -o -perm /o+x \) -exec ls -ald {} + -exec chmod g-w,o-rwx {} +
@@ -2236,7 +1974,7 @@
   ansible.builtin.getent:
     database: group
 
-- name: STIGrule_230322_fix_group_owner_on_home # noqa:risky-file-permissions
+- name: stigrule_230322_fix_group_owner_on_home # noqa:risky-file-permissions
   ansible.builtin.file:
     path: "{{ item.value[4] }}"
     owner: "{{ item.key }}"
@@ -2256,7 +1994,7 @@
   when: rhel8STIG_stigrule_230322_Manage
 
 # V-230323
-- name: STIGrule_230323__create_home_directory
+- name: stigrule_230323__create_home_directory
   ansible.builtin.user:
     name: "{{ item.key }}"
     home: "{{ item.value[4] }}"
@@ -2268,7 +2006,7 @@
     - item.value[4]  | length == 0
 
 # V-230325
-- name: STIGrule_230325__chmod_user_init_files
+- name: stigrule_230325__chmod_user_init_files
   ansible.builtin.shell: |
     set -o pipefail
     find {{ item.value[4] }}/ -maxdepth 1 -name '.*' -type f  \( -perm /g+w -o -perm /g+x -o -perm /o+r -o -perm /o+w -o -perm /o+x \) -exec ls -al {} + -exec chmod g-wx,o-rwx {} +
@@ -2278,7 +2016,7 @@
   when: rhel8STIG_stigrule_230325_Manage
 
 # V-230326
-- name: STIGrule_230326__excluded_paths
+- name: Define excluded paths
   ansible.builtin.set_fact:
     exclude_no_paths: >-
       {{ rhel8STIG_stigrule_230326_ignore_dirs
@@ -2287,7 +2025,7 @@
       }}
   when: rhel8STIG_stigrule_230326_Manage
 
-- name: STIGrule_230326__add_prune_argument
+- name: Add prune argument
   ansible.builtin.set_fact:
     exclude_no_cmd: '\( {{ exclude_no_paths }} \) -prune -o'
   when:
@@ -2295,14 +2033,14 @@
     - exclude_no_paths is defined
     - exclude_no_paths | length > 0
 
-- name: STIGrule_230326__set_empty_var
+- name: Set empty var
   ansible.builtin.set_fact:
     exclude_no_cmd: ''
   when:
     - rhel8STIG_stigrule_230326_Manage
     - exclude_no_paths is not defined or exclude_no_paths | length == 0
 
-- name: STIGrule_230326__chown_no_owner
+- name: stigrule_230326__chown_no_owner
   ansible.builtin.shell: |
     set -o pipefail
     df --local -P | awk {'if (NR!=1) print $6'} | xargs -I MOUNTPOINT find MOUNTPOINT -xdev {{ exclude_no_cmd }} -nouser -exec ls -al {} + -exec chown {{ rhel8STIG_stigrule_230326_new_owner }} {} + || true
@@ -2311,7 +2049,7 @@
   when: rhel8STIG_stigrule_230326_Manage
 
 # V-230327
-- name: STIGrule_230327__excluded_paths
+- name: Define excluded paths
   ansible.builtin.set_fact:
     exclude_ng_paths: >-
       {{ rhel8STIG_stigrule_230327_ignore_dirs
@@ -2320,7 +2058,7 @@
       }}
   when: rhel8STIG_stigrule_230327_Manage
 
-- name: STIGrule_230327__add_prune_argument
+- name: Add prune argument
   ansible.builtin.set_fact:
     exclude_ng_cmd: '\( {{ exclude_ng_paths }} \) -prune -o'
   when:
@@ -2328,14 +2066,14 @@
     - exclude_ng_paths is defined
     - exclude_ng_paths | length > 0
 
-- name: STIGrule_230327__set_empty_var
+- name: Set empty var
   ansible.builtin.set_fact:
     exclude_ng_cmd: ''
   when:
     - rhel8STIG_stigrule_230327_Manage
     - exclude_ng_paths is not defined or exclude_ng_paths | length == 0
 
-- name: STIGrule_230327__chgrp_no_group
+- name: stigrule_230327__chgrp_no_group
   ansible.builtin.shell: |
     set -o pipefail
     df --local -P | awk {'if (NR!=1) print $6'} | xargs -I MOUNTPOINT find MOUNTPOINT -xdev {{ exclude_ng_cmd }} -nogroup -exec ls -al {} + -exec chgrp {{ rhel8STIG_stigrule_230327_new_group }} {} + || true
@@ -2352,7 +2090,7 @@
     owner: root
     group: root
 
-- name: stigrule_230332__check_faillock_settings
+- name: Check faillock settings for deny
   ansible.builtin.shell: |
     set -o pipefail
     grep -E '^auth\s+required\s+pam_faillock\.so\s+preauth' /etc/pam.d/{{ item }} | grep -oP 'deny=\K\d+' || true
@@ -2384,7 +2122,7 @@
       ) > 0
 
 # V-230333
-- name: STIGrule_230333__faillock_conf
+- name: stigrule_230333__faillock_conf_set_deny
   community.general.ini_file:
     path: /etc/security/faillock.conf
     option: deny
@@ -2400,7 +2138,7 @@
     - ansible_distribution_version is version('8.2', '>=')
 
 # V-230334 RHEL-08-020012
-- name: stigrule_230334__check_faillock_settings
+- name: Check faillock settings for fail_interval
   ansible.builtin.shell: |
     set -o pipefail
     grep -E '^auth\s+required\s+pam_faillock\.so\s+preauth' /etc/pam.d/{{ item }} | grep -oP 'fail_interval=\K\d+' || true
@@ -2424,7 +2162,7 @@
     - ansible_distribution_version is version('8.2', '<')
 
 # V-230335
-- name: STIGrule_230335__faillock_conf
+- name: stigrule_230335__faillock_conf_set_fail_interval
   community.general.ini_file:
     path: /etc/security/faillock.conf
     option: fail_interval
@@ -2440,7 +2178,7 @@
     - ansible_distribution_version is version('8.2', '>=')
 
 # V-230336 RHEL-08-020014
-- name: stigrule_230336__check_faillock_settings
+- name: Check faillock settings for unlock_time
   ansible.builtin.shell: |
     set -o pipefail
     grep -E '^auth\s+required\s+pam_faillock\.so\s+preauth' /etc/pam.d/{{ item }} | grep -oP 'unlock_time=\K\d+' || true
@@ -2463,7 +2201,7 @@
     - ansible_distribution_version is version('8.2', '<')
 
 # V-230337
-- name: STIGrule_230337__faillock_conf
+- name: stigrule_230337__faillock_conf_set_unlock_time
   community.general.ini_file:
     path: /etc/security/faillock.conf
     option: unlock_time
@@ -2479,7 +2217,7 @@
     - ansible_distribution_version is version('8.2', '>=')
 
 # V-230338 RHEL-08-020016
-- name: stigrule_230338__check_faillock_settings
+- name: Check faillock settings for dir
   ansible.builtin.shell: |
     set -o pipefail
     grep -E '^auth\s+required\s+pam_faillock\.so\s+preauth' /etc/pam.d/{{ item }} | grep -oP 'dir=\K\d+' || true
@@ -2512,7 +2250,7 @@
       ) > 0
 
 # V-230339
-- name: STIGrule_230339_faillock.conf
+- name: stigrule_230339_faillock.conf_set_dir
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: '^[#\s]*dir\s*='
@@ -2524,7 +2262,7 @@
     - ansible_distribution_version is version('8.2', '>=')
 
 # V-230340 RHEL-08-020018
-- name: stigrule_230340__check_faillock_settings
+- name: Check faillock settings for silent
   ansible.builtin.shell: |
     set -o pipefail
     grep -E '^auth\s+required\s+pam_faillock\.so\s+authfail' /etc/pam.d/{{ item }} | grep silent || true
@@ -2556,7 +2294,7 @@
       ) > 0
 
 # V-230341
-- name: STIGrule_230341_faillock.conf
+- name: stigrule_230341_faillock.conf_set_silent
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: '^silent(\s+|$)'
@@ -2572,7 +2310,7 @@
     - ansible_distribution_version is version('8.2', '>=')
 
 # V-230342 RHEL-08-020018
-- name: stigrule_230342__check_faillock_settings
+- name: Check faillock settings for audit
   ansible.builtin.shell: |
     set -o pipefail
     grep -E '^auth\s+required\s+pam_faillock\.so\s+authfail' /etc/pam.d/{{ item }} | audit || true
@@ -2604,7 +2342,7 @@
       ) > 0
 
 # V-230343
-- name: STIGrule_230343_faillock.conf
+- name: stigrule_230343_faillock.conf_set_audit
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: '^audit(\s+|$)'
@@ -2620,7 +2358,7 @@
     - ansible_distribution_version is version('8.2', '>=')
 
 # V230344 RHEL-08-020022
-- name: Check pam.d files for even_deny_root
+- name: Check faillock settings for even_deny_root
   ansible.builtin.shell: |
     set -o pipefail
     grep -E '^auth\s+required\s+pam_faillock\.so\s+preauth' /etc/pam.d/{{ item }} | grep 'even_deny_root' || true
@@ -2652,7 +2390,7 @@
       ) > 0
 
 # V-230345
-- name: STIGrule_230345_faillock.conf
+- name: stigrule_230345_faillock.conf_set_even_deny_root
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: '^even_deny_root(\s+|$)'
@@ -2677,7 +2415,7 @@
   when: rhel8STIG_stigrule_230351_Manage
   register: smartcard_lock
 
-- name: STIGrule_230351__authselect
+- name: stigrule_230351__authselect
   ansible.builtin.command:
     cmd: authselect select sssd {{ rhel8STIG_stigrule_authselect_features | join(' ') }}
   register: authselect_lockscreen
@@ -2696,7 +2434,7 @@
   when: rhel8STIG_stigrule_230356_Manage
   register: password_pwquality
 
-- name: STIGrule_230356__enable_authselect_with_features
+- name: stigrule_230356__enable_authselect_with_features
   ansible.builtin.command:
     cmd: authselect select {{ rhel8STIG_stigrule_authselect_profile }} {{ rhel8STIG_stigrule_authselect_features | join(' ') }} {{ '--force' if rhel8STIG_stigrule_authselect_force | bool else '' }}"
   register: authselect_pwquality
@@ -2706,7 +2444,7 @@
     - password_pwquality.stdout | length == 0
 
 # V-230364
-- name: STIGrule_230364__pass_min_1_day # noqa:no-log-password
+- name: stigrule_230364__pass_min_1_day # noqa:no-log-password
   ansible.builtin.user:
     name: "{{ item.key }}"
     password_expire_min: 1
@@ -2717,7 +2455,7 @@
     - item.value[1] | int < 65534
 
 # V-230367
-- name: STIGrule_230367__pass_60_days # noqa:no-log-password
+- name: stigrule_230367__pass_60_days # noqa:no-log-password
   ansible.builtin.user:
     name: "{{ item.key }}"
     password_expire_max: 60
@@ -2728,17 +2466,17 @@
     - item.value[1] | int < 65534
 
 # V-230371
-- name: STIGrule_230371__Get all passwd entries
+- name: Get all passwd entries
   ansible.builtin.getent:
     database: passwd
   when: rhel8STIG_stigrule_230371_Manage
 
-- name: STIGrule_230371__Init user_uid_list
+- name: Initialize user_uid_list
   ansible.builtin.set_fact:
     user_uid_list: []
   when: rhel8STIG_stigrule_230371_Manage
 
-- name: STIGrule_230371__Build list of (user, uid) for normal users
+- name: Build list of (user, uid) for normal users
   ansible.builtin.set_fact:
     user_uid_list: "{{ user_uid_list + [{'name': item.key, 'uid': (item.value[1] | int)}] }}"
   loop: "{{ ansible_facts.getent_passwd | dict2items }}"
@@ -2748,18 +2486,18 @@
     - item.value | length > 2
     - (item.value[1] | int) >= rhel8STIG_stigrule_230371_min_uid
 
-- name: STIGrule_230371__Build list of UIDs
+- name: Build list of UIDs
   ansible.builtin.set_fact:
     uid_list: "{{ user_uid_list | map(attribute='uid') | list }}"
   when: rhel8STIG_stigrule_230371_Manage
 
-- name: STIGrule_230371__Build map of uid -> count
+- name: Build map of uid -> count
   ansible.builtin.set_fact:
     uid_counts: "{{ uid_counts | default({}) | combine({item: (uid_counts[item] | default(0)) + 1}) }}"
   loop: "{{ uid_list }}"
   when: rhel8STIG_stigrule_230371_Manage
 
-- name: STIGrule_230371__Build list of duplicate UIDs
+- name: Build list of duplicate UIDs
   ansible.builtin.set_fact:
     dup_uids: >-
       {{
@@ -2774,7 +2512,7 @@
     - uid_counts is defined
     - uid_counts | length > 0
 
-- name: STIGrule_230371__Show duplicate UIDs
+- name: Show duplicate UIDs
   ansible.builtin.debug:
     msg: "Duplicate UID {{ item }} has users: {{
             user_uid_list
@@ -2785,17 +2523,17 @@
   loop: "{{ dup_uids }}"
   when: rhel8STIG_stigrule_230371_Manage
 
-- name: STIGrule_230371__Build set of used UIDs
+- name: Build set of used UIDs
   ansible.builtin.set_fact:
     used_uids: "{{ uid_list | unique | sort }}"
   when: rhel8STIG_stigrule_230371_Manage
 
-- name: STIGrule_230371__Init list of users needing UID change
+- name: Initialize list of users needing UID change
   ansible.builtin.set_fact:
     uid_changes: []
   when: rhel8STIG_stigrule_230371_Manage
 
-- name: STIGrule_230371__Add users needing UID change
+- name: Add users needing UID change
   ansible.builtin.set_fact:
     uid_changes: "{{ uid_changes + [{'name': item.name, 'old_uid': item.uid}] }}"
   loop: "{{ user_uid_list }}"
@@ -2810,7 +2548,7 @@
         | first
       )
 
-- name: STIGrule_230371__Compute free UIDs
+- name: Compute free UIDs
   ansible.builtin.set_fact:
     free_uids: >-
       {{
@@ -2822,14 +2560,14 @@
     - rhel8STIG_stigrule_230371_Manage
     - uid_changes | length > 0
 
-- name: STIGrule_230371__Zip uid_changes with free_uids
+- name: Zip uid_changes with free_uids
   ansible.builtin.set_fact:
     uid_changes_zipped: "{{ uid_changes | zip(free_uids) | list }}"
   when:
     - rhel8STIG_stigrule_230371_Manage
     - uid_changes | length > 0
 
-- name: STIGrule_230371__Build final uid_changes list with new_uid
+- name: Build final uid_changes list with new_uid
   ansible.builtin.set_fact:
     uid_changes_with_new: "{{ uid_changes_with_new | default([]) + [ item.0 | combine({'new_uid': item.1}) ] }}"
   loop: "{{ uid_changes_zipped }}"
@@ -2837,7 +2575,7 @@
     - rhel8STIG_stigrule_230371_Manage
     - uid_changes_zipped is defined and uid_changes_zipped | length > 0
 
-- name: STIGrule_230371__Change UID in /etc/passwd for each user
+- name: stigrule_230371__update_duplicate_UID
   ansible.builtin.lineinfile:
     path: /etc/passwd
     regexp: '^{{ item.name }}:'
@@ -2849,7 +2587,7 @@
     - uid_changes_with_new is defined and uid_changes_with_new | length > 0
 
 # V-230372
-- name: STIGrule_230372__pam_cert_auth
+- name: stigrule_230372__pam_cert_auth_sssd
   community.general.ini_file:
     exclusive: true
     owner: root
@@ -2863,14 +2601,20 @@
     state: present
   when: rhel8STIG_stigrule_230372_Manage
 
-- name: STIGrule_230372__check_cert_auth_settings
+- name: Check for _cert_auth entries in /etc/pam.d/smartcard-auth
   ansible.builtin.shell: |
     set -o pipefail
-    grep -E '^auth\s+sufficient\s+pam_sss\.so\s+allow_missing_name' /etc/pam.d/{{ item }} | grep '_cert_auth' || true
-  register: rhel8STIG_230372_cert_auth_check
-  loop:
-    - "smartcard-auth"
-    - "system-auth"
+    grep -E '^auth\s+sufficient\s+pam_sss\.so\s+allow_missing_name' /etc/pam.d/smartcard-auth | grep -E 'try_cert_auth|require_cert_auth' || true
+  register: rhel8STIG_230372_smartcard_auth_check
+  changed_when: false
+  when:
+    - rhel8STIG_stigrule_230372_Manage
+
+- name: Check for _cert_auth entries in /etc/pam.d/system-auth
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep -E '^auth.*pam_sss\.so.*_cert_auth.*' /etc/pam.d/system-auth | grep -E 'try_cert_auth|require_cert_auth' || true
+  register: rhel8STIG_230372_system_auth_check
   changed_when: false
   when:
     - rhel8STIG_stigrule_230372_Manage
@@ -2883,16 +2627,14 @@
   when:
     - rhel8STIG_stigrule_230372_Manage
     - >
-      rhel8STIG_230372_cert_auth_check is defined and
-      (
-        rhel8STIG_230372_cert_auth_check.results
-        | selectattr('stdout', 'equalto', '')
-        | list
-        | length
-      ) > 0
+      (rhel8STIG_230372_smartcard_auth_check.stdout | length == 0) or
+      (rhel8STIG_230372_system_auth_check.stdout | length == 0)
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-230373
-- name: Check current INACTIVE value in /etc/default/useradd
+- name: Check if INACTIVE present in /etc/default/useradd
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -2913,9 +2655,13 @@
     current_inactive: "-1"
   when:
     - rhel8STIG_stigrule_230373_Manage
-    - inactive_check.stdout_lines | length > 0
+    - inactive_check.stdout_lines | length == 0
 
-- name: STIGrule_230373__set_INACTIVE_value
+- name: DEBUG
+  debug:
+    var: current_inactive
+
+- name: stigrule_230373__set_INACTIVE_value
   ansible.builtin.command:
     cmd: useradd -D -f {{ rhel8STIG_stigrule_230373_inactive }}
   when:
@@ -2936,7 +2682,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230376_Manage
 
-- name: STIGrule_230376_set_offline_credentials_expiration
+- name: stigrule_230376_set_offline_credentials_expiration
   community.general.ini_file:
     path: /etc/sssd/sssd.conf
     section: pam
@@ -2950,7 +2696,7 @@
     - smartcard_check.stdout_lines | length > 0
 
 # V-230380
-- name: STIGrule_230380_disable_PermitEmptyPasswords
+- name: stigrule_230380_disable_PermitEmptyPasswords
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: '^PermitEmptyPasswords'
@@ -2960,7 +2706,7 @@
   when: rhel8STIG_stigrule_230380_Manage
 
 # V-230384
-- name: STIGrule_230384__find_user_initialization_files
+- name: Fnd user initialization files
   ansible.builtin.shell: |
     set -o pipefail
     grep -l '.*(umask|UMASK).*' $(find {{ default_home_path }} -type f ! -type l -name '.*') || true
@@ -2968,7 +2714,7 @@
   when: rhel8STIG_stigrule_230384_Manage
   changed_when: false
 
-- name: STIGrule_230384__comment_out_umask
+- name: stigrule_230384__comment_out_umask
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '.*(umask|UMASK).*'
@@ -2979,7 +2725,7 @@
     - initialization_files.stdout_lines | length > 0
 
 # V-230385
-- name: STIGrule_230385__umask_shell
+- name: stigrule_230385__umask_shell
   ansible.builtin.replace:
     path: "{{ item }}"
     regexp: '(umask|UMASK)\s+\d+'
@@ -2992,37 +2738,39 @@
 
 # V-230396 RHEL-08-030070
 - name: Get log path from auditd.conf
-  ansible.builtin.command:
-    cmd: grep -iw log_file /etc/audit/auditd.conf
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep -iw log_file /etc/audit/auditd.conf || true
   register: audit_log_path_raw
   changed_when: false
-  failed_when: audit_log_path_raw.rc != 0
 
 - name: Parse audit log path
   ansible.builtin.set_fact:
     audit_log_path: "{{ audit_log_path_raw.stdout.split('=')[1] | trim }}"
 
-- name: STIGrule_230396__chmod_audit_log
+- name: stigrule_230396__chmod_audit_log
   ansible.builtin.file:
     path: "{{ audit_log_path }}"
     mode: '0600'
-  when: rhel8STIG_stigrule_230396_Manage
+  when:
+    - rhel8STIG_stigrule_230396_Manage
 
 # V-230397 RHEL-08-030080
-- name: STIGrule_230397__chown_audit_log
+- name: stigrule_230397__chown_audit_log
   ansible.builtin.file:
     path: "{{ audit_log_path }}"
     owner: root
   when: rhel8STIG_stigrule_230397_Manage
 
 # V-230398 RHEL-08-030090
-- name: STIGrule_230398__chgrp_audit_log
+- name: stigrule_230398__chgrp_audit_log
   ansible.builtin.file:
     path: "{{ audit_log_path }}"
     group: root
   when: rhel8STIG_stigrule_230398_Manage
 
-- name: STIGrule_230398__set_log_group
+- name: stigrule_230398__set_log_group
   community.general.ini_file:
     path: /etc/audit/auditd.conf
     option: log_group
@@ -3036,28 +2784,28 @@
   when: rhel8STIG_stigrule_230398_Manage
 
 # V-230399 RHEL-08-030100
-- name: STIGrule_230399__chown_audit_log_dir
+- name: stigrule_230399__chown_audit_log_dir
   ansible.builtin.file:
     path: "{{ audit_log_path | dirname }}"
     owner: root
   when: rhel8STIG_stigrule_230399_Manage
 
 # V-230400 RHEL-08-030110
-- name: STIGrule_230400__chgrp_audit_log_dir
+- name: stigrule_230400__chgrp_audit_log_dir
   ansible.builtin.file:
     path: "{{ audit_log_path | dirname }}"
     group: root
   when: rhel8STIG_stigrule_230400_Manage
 
 # V-230401 RHEL-08-030120
-- name: STIGrule_230401__chgrp_audit_log_dir
+- name: stigrule_230401__chgrp_audit_log_dir
   ansible.builtin.file:
     path: "{{ audit_log_path | dirname }}"
     mode: '0700'
   when: rhel8STIG_stigrule_230401_Manage
 
 # V-230468
-- name: STIGrule_230468__check_auditing_enabled
+- name: Check grub2-editenv for audit
   ansible.builtin.shell: |
     set -o pipefail
     grub2-editenv list | grep audit || true
@@ -3065,7 +2813,7 @@
   when: rhel8STIG_stigrule_230468_Manage
   changed_when: false
 
-- name: STIGrule_230468__grubby_update
+- name: stigrule_230468__grubby_set_audit
   ansible.builtin.command: grubby --update-kernel=ALL --args="audit=1"
   register: grubby_result
   changed_when: grubby_result.rc == 0
@@ -3074,39 +2822,23 @@
     - "'audit=1' not in grub2_output.stdout"
 
 # V-230469
-- name: STIGrule_230469__check_audit_backlog_limit
+- name: Check grub2-editenv for audit_backlog_limit
   ansible.builtin.shell: |
     set -o pipefail
-    grub2-editenv list | grep audit_backlog_limit || true
+    grub2-editenv list | grep -oP 'audit_backlog_limit=\K\d+' || true
   when: rhel8STIG_stigrule_230469_Manage
   register: audit_backlog_limit
   changed_when: false
 
-- name: Extract audit_backlog_limit from kernelopts
-  ansible.builtin.set_fact:
-    audit_backlog_limit_value: >-
-      {{
-        (
-          audit_backlog_limit.stdout
-          | regex_search('audit_backlog_limit=([0-9]+)', '\1')
-          | default([])
-        )
-        | first
-        | default('0')
-      }}
-  when:
-    - rhel8STIG_stigrule_230469_Manage
-    - audit_backlog_limit.stdout | length > 0
-
-- name: STIGrule_230469__grubby_update # noqa: command-instead-of-shell
+- name: stigrule_230469__grubby_set_audit_backlog_limit # noqa: command-instead-of-shell
   ansible.builtin.shell: grubby --update-kernel=ALL --args="audit_backlog_limit={{ rhel8STIG_stigrule_230469_limit }}"
   register: grubby_backlog_result
   changed_when: grubby_backlog_result.rc == 0
   when:
     - rhel8STIG_stigrule_230469_Manage
     - >
-      audit_backlog_limit_value is not defined or
-      (audit_backlog_limit_value| int) != (rhel8STIG_stigrule_230469_limit | int)
+      (audit_backlog_limit.stdout | length == 0) or
+      ((audit_backlog_limit.stdout | int) < (rhel8STIG_stigrule_230469_limit | int))
 
 # V-230470
 - name: Check if USBGuard installed
@@ -3119,7 +2851,7 @@
   when:
     - rhel8STIG_stigrule_230470_Manage
 
-- name: STIGrule_230470__usbguard_daemon_conf_correct
+- name: stigrule_230470__usbguard_daemon_conf_AuditBackend
   ansible.builtin.lineinfile:
     path: /etc/usbguard/usbguard-daemon.conf
     regexp: 'AuditBackend='
@@ -3130,7 +2862,7 @@
     - usbguard_service.stdout | length > 0
 
 # V-230471 RHEL-08-030610
-- name: STIGrule_230471__chmod_audit_rules
+- name: stigrule_230471__chmod_audit_rules
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -3143,55 +2875,34 @@
   when: rhel8STIG_stigrule_230471_Manage
 
 # V-230472 RHEL-08-030620
-- name: STIGrule_230472__chmod_audit_tools
+- name: stigrule_230472__chmod_audit_tools
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      find '{{ item }}' \( -perm /g+w -o -perm /o+x \) -exec ls -al {} + -exec chmod g-w,o-w {} + || true
+      find '{{ item }}' \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod g-w,o-w {} + || true
   register: chmod_audit_tools
   changed_when: chmod_audit_tools.stdout_lines | length > 0
-  loop:
-    - /sbin/auditctl
-    - /sbin/aureport
-    - /sbin/ausearch
-    - /sbin/autrace
-    - /sbin/auditd
-    - /sbin/rsyslogd
-    - /sbin/augenrules
+  loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230472_Manage
 
 # V-230473 RHEL-08-030630
-- name: STIGrule_230473__chown_audit_tools
+- name: stigrule_230473__chown_audit_tools
   ansible.builtin.file:
     path: "{{ item }}"
     owner: root
-  loop:
-    - /sbin/auditctl
-    - /sbin/aureport
-    - /sbin/ausearch
-    - /sbin/autrace
-    - /sbin/auditd
-    - /sbin/rsyslogd
-    - /sbin/augenrules
+  loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230473_Manage
 
 # V-230474 RHEL-08-030640
-- name: STIGrule_230474__chgrp_audit_tools
+- name: stigrule_230474__chgrp_audit_tools
   ansible.builtin.file:
     path: "{{ item }}"
     group: root
-  loop:
-    - /sbin/auditctl
-    - /sbin/aureport
-    - /sbin/ausearch
-    - /sbin/autrace
-    - /sbin/auditd
-    - /sbin/rsyslogd
-    - /sbin/augenrules
+  loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230474_Manage
 
 # V-230475
-- name: STIGrule_230475__add_missing_lines
+- name: stigrule_230475__add_missing_lines
   ansible.builtin.lineinfile:
     path: /etc/aide.conf
     regexp: "^{{ item | regex_escape() }}\\s"
@@ -3199,12 +2910,12 @@
     state: present
     create: false
     backrefs: false
-  loop: "{{ rhel8STIG_stigrule_230475_aide_bins }}"
+  loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when:
     - rhel8STIG_stigrule_230475_Manage
 
 # #V-230479
-- name: STIGrule_230479_Check for existing remote syslog configuration
+- name: Check for existing remote syslog configuration
   ansible.builtin.command:
     cmd: >
         grep -r '^[^#].*@' /etc/rsyslog.conf /etc/rsyslog.d/*.conf
@@ -3213,7 +2924,7 @@
   failed_when: rsyslog_remote_check.rc not in [0, 1, 2]
   when: rhel8STIG_stigrule_230479_Manage
 
-- name: STIGrule_230479_Add remote syslog rule to /etc/rsyslog.d if none found
+- name: stigrule_230479__configure_remote_syslog
   ansible.builtin.copy:
     dest: /etc/rsyslog.d/99-remote-syslog.conf
     owner: root
@@ -3229,7 +2940,13 @@
     - rsyslog_remote_check.stdout_lines | length == 0
 
 # V-230484
-- name: STIGrule_230484__check_server_line
+- name: Ensure chrony is installed
+  ansible.builtin.package:
+    name: chrony
+    state: present
+  when: rhel8STIG_stigrule_230484_Manage
+
+- name: stigrule_230484__check_server_line
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
     regexp: ^server\s
@@ -3239,17 +2956,18 @@
   changed_when: false
   when: rhel8STIG_stigrule_230484_Manage
 
-- name: STIGrule_230484__add_ntp_server
+- name: stigrule_230484__add_ntp_source
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
-    regexp: '^server\s'
-    line: "server {{ rhel8STIG_stigrule_230484_ntp_server }} iburst maxpoll 16"
+    regexp: '^{{ rhel8STIG_stigrule_230484_ntp_directive }}\s'
+    line: "{{ rhel8STIG_stigrule_230484_ntp_directive ~ ' ' ~ item ~ ' iburst maxpoll ' ~ (rhel8STIG_stigrule_230484_ntp_maxpoll | string) }}"
     insertafter: EOF
+  loop: "{{ rhel8STIG_stigrule_230484_ntp_source }}"
   when:
     - rhel8STIG_stigrule_230484_Manage
     - server_line_check.found == 0
 
-- name: STIGrule_230484__set_maxpoll_16
+- name: stigrule_230484__ensure_existing_maxpoll_value
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
     backrefs: true
@@ -3257,7 +2975,7 @@
     line: '\116\3'
   when: rhel8STIG_stigrule_230484_Manage
 
-- name: STIGrule_230484__add_maxpoll_16
+- name: stigrule_230484__add_maxpoll_value
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
     backrefs: true
@@ -3303,8 +3021,8 @@
 - name: stigrule_230486__set_chrony_cmdport_0
   ansible.builtin.lineinfile:
     path: /etc/chrony.conf
-    regexp: '^#?\s*port\s+.*'
-    line: 'port 0'
+    regexp: '^#?\s*cmdport\s+.*'
+    line: 'cmdport 0'
     owner: root
     group: root
     mode: '0644'
@@ -3316,24 +3034,24 @@
   notify: restart_chronyd
 
 # V-230491
-- name: STIGrule_230491__check_pti_enabled
+- name: Check grub2-editenv for pti
   ansible.builtin.shell: |
     set -o pipefail
-    grub2-editenv list | grep pti || true
+    grub2-editenv list | grep kernelopts | sed -E 's/.*pti=([^ ]*).*/\1/' || true
   register: grub2_pti_output
   when: rhel8STIG_stigrule_230491_Manage
   changed_when: false
 
-- name: STIGrule_230491__grubby_update
+- name: stigrule_230491__grubby_set_pti
   ansible.builtin.command: grubby --update-kernel=ALL --args="pti=on"
   register: grubby_pti_result
   changed_when: grubby_pti_result.rc == 0
   when:
     - rhel8STIG_stigrule_230491_Manage
-    - "'pti=on' not in grub2_pti_output.stdout"
+    - "'on' not in grub2_pti_output.stdout"
 
 # V-230493 RHEL-08-040020
-- name: STIGrule_230493__uvcvideo_check
+- name: Check modprobe for uvcvideo
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl uvcvideo /etc/modprobe.d || true
@@ -3341,7 +3059,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230493_Manage
 
-- name: STIGrule_230493__uvcvideo_disable_install
+- name: stigrule_230493__uvcvideo_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+uvcvideo\s+'
@@ -3355,9 +3073,9 @@
   loop: "{{ uvcvideo_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230493_Manage
-    - uvcvideo_files.stdout_lines | length > 0
+    - uvcvideo_files.stdout_lines | length == 0
 
-- name: STIGrule_230493__blacklist_uvcvideo
+- name: stigrule_230493__blacklist_uvcvideo
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+uvcvideo\s*$'
@@ -3371,9 +3089,9 @@
   loop: "{{ uvcvideo_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230493_Manage
-    - uvcvideo_files.stdout_lines | length > 0
+    - uvcvideo_files.stdout_lines | length == 0
 
-- name: STIGrule_230493__create_uvcvideo.conf_as_needed
+- name: stigrule_230493__create_uvcvideo.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/uvcvideo.conf
     content: |
@@ -3387,7 +3105,7 @@
     - uvcvideo_files.stdout_lines | length == 0
 
 # V-230494
-- name: STIGrule_230494__atm_check
+- name: Check modprobe for atm
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl atm /etc/modprobe.d || true
@@ -3395,7 +3113,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230494_Manage
 
-- name: STIGrule_230494__atm_disable_install
+- name: stigrule_230494__atm_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+atm\s+'
@@ -3409,9 +3127,9 @@
   loop: "{{ atm_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230494_Manage
-    - atm_files.stdout_lines | length > 0
+    - atm_files.stdout_lines | length == 0
 
-- name: STIGrule_230494__blacklist_atm
+- name: stigrule_230494__blacklist_atm
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+atm\s*$'
@@ -3425,9 +3143,9 @@
   loop: "{{ atm_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230494_Manage
-    - atm_files.stdout_lines | length > 0
+    - atm_files.stdout_lines | length == 0
 
-- name: STIGrule_230494__create_atm.conf_as_needed
+- name: stigrule_230494__create_atm.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/atm.conf
     content: |
@@ -3441,7 +3159,7 @@
     - atm_files.stdout_lines | length == 0
 
 # V-230495
-- name: STIGrule_230495__can_check
+- name: Check modprobe for can
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl can /etc/modprobe.d || true
@@ -3449,7 +3167,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230495_Manage
 
-- name: STIGrule_230495__can_disable_install
+- name: stigrule_230495__can_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+can\s+'
@@ -3463,9 +3181,9 @@
   loop: "{{ can_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230495_Manage
-    - can_files.stdout_lines | length > 0
+    - can_files.stdout_lines | length == 0
 
-- name: STIGrule_230495__blacklist_can
+- name: stigrule_230495__blacklist_can
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+can\s*$'
@@ -3479,9 +3197,9 @@
   loop: "{{ can_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230495_Manage
-    - can_files.stdout_lines | length > 0
+    - can_files.stdout_lines | length == 0
 
-- name: STIGrule_230495__create_can.conf_as_needed
+- name: stigrule_230495__create_can.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/can.conf
     content: |
@@ -3495,7 +3213,7 @@
     - can_files.stdout_lines | length == 0
 
 # V-230496
-- name: STIGrule_230496__sctp_check
+- name: Check modprobe for sctp
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl sctp /etc/modprobe.d || true
@@ -3503,7 +3221,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230496_Manage
 
-- name: STIGrule_230496__sctp_disable_install
+- name: stigrule_230496__sctp_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+sctp\s+'
@@ -3517,9 +3235,9 @@
   loop: "{{ sctp_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230496_Manage
-    - sctp_files.stdout_lines | length > 0
+    - sctp_files.stdout_lines | length == 0
 
-- name: STIGrule_230496__blacklist_sctp
+- name: stigrule_230496__blacklist_sctp
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+sctp\s*$'
@@ -3533,9 +3251,9 @@
   loop: "{{ sctp_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230496_Manage
-    - sctp_files.stdout_lines | length > 0
+    - sctp_files.stdout_lines | length == 0
 
-- name: STIGrule_230496__create_sctp.conf_as_needed
+- name: stigrule_230496__create_sctp.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/sctp.conf
     content: |
@@ -3549,7 +3267,7 @@
     - sctp_files.stdout_lines | length == 0
 
 # V-230497
-- name: STIGrule_230497__tipc_check
+- name: Check modprobe for tipc
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl tipc /etc/modprobe.d || true
@@ -3557,7 +3275,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230497_Manage
 
-- name: STIGrule_230497__tipc_disable_install
+- name: stigrule_230497__tipc_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+tipc\s+'
@@ -3571,9 +3289,9 @@
   loop: "{{ tipc_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230497_Manage
-    - tipc_files.stdout_lines | length > 0
+    - tipc_files.stdout_lines | length == 0
 
-- name: STIGrule_230497__blacklist_tipc
+- name: stigrule_230497__blacklist_tipc
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+tipc\s*$'
@@ -3587,9 +3305,9 @@
   loop: "{{ tipc_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230497_Manage
-    - tipc_files.stdout_lines | length > 0
+    - tipc_files.stdout_lines | length == 0
 
-- name: STIGrule_230497__create_tipc.conf_as_needed
+- name: stigrule_230497__create_tipc.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/tipc.conf
     content: |
@@ -3603,7 +3321,7 @@
     - tipc_files.stdout_lines | length == 0
 
 # V-230498
-- name: STIGrule_230498__cramfs_check
+- name: Check modprobe for cramfs
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl cramfs /etc/modprobe.d || true
@@ -3611,7 +3329,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230498_Manage
 
-- name: STIGrule_230498__cramfs_disable_install
+- name: stigrule_230498__cramfs_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+cramfs\s+'
@@ -3625,9 +3343,9 @@
   loop: "{{ cramfs_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230498_Manage
-    - cramfs_files.stdout_lines | length > 0
+    - cramfs_files.stdout_lines | length == 0
 
-- name: STIGrule_230498__blacklist_cramfs
+- name: stigrule_230498__blacklist_cramfs
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+cramfs\s*$'
@@ -3641,9 +3359,9 @@
   loop: "{{ cramfs_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230498_Manage
-    - cramfs_files.stdout_lines | length > 0
+    - cramfs_files.stdout_lines | length == 0
 
-- name: STIGrule_230498__create_cramfs.conf_as_needed
+- name: stigrule_230498__create_cramfs.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/cramfs.conf
     content: |
@@ -3657,7 +3375,7 @@
     - cramfs_files.stdout_lines | length == 0
 
 # V-230499
-- name: STIGrule_230499__firewire-core_check
+- name: Check modprobe for firewire-core
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl firewire-core /etc/modprobe.d || true
@@ -3665,7 +3383,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230499_Manage
 
-- name: STIGrule_230499__firewire-core_disable_install
+- name: stigrule_230499__firewire-core_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+firewire-core\s+'
@@ -3679,9 +3397,9 @@
   loop: "{{ firewire_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230499_Manage
-    - firewire_files.stdout_lines | length > 0
+    - firewire_files.stdout_lines | length == 0
 
-- name: STIGrule_230499__blacklist_firewire-core
+- name: stigrule_230499__blacklist_firewire-core
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+firewire-core\s*$'
@@ -3695,9 +3413,9 @@
   loop: "{{ firewire_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230499_Manage
-    - firewire_files.stdout_lines | length > 0
+    - firewire_files.stdout_lines | length == 0
 
-- name: STIGrule_230499__create_firewire-core.conf_as_needed
+- name: stigrule_230499__create_firewire-core.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/firewire-core.conf
     content: |
@@ -3711,7 +3429,7 @@
     - firewire_files.stdout_lines | length == 0
 
 # V-230503
-- name: STIGrule_230503__usb-storage_check
+- name: Check modprobe for usb-storage
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl usb-storage /etc/modprobe.d || true
@@ -3719,7 +3437,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230503_Manage
 
-- name: STIGrule_230503__usb-storage_disable_install
+- name: stigrule_230503__usb-storage_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+usb-storage\s+'
@@ -3733,9 +3451,9 @@
   loop: "{{ usb_storage_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230503_Manage
-    - usb_storage_files.stdout_lines | length > 0
+    - usb_storage_files.stdout_lines | length == 0
 
-- name: STIGrule_230503__blacklist_usb-storage
+- name: stigrule_230503__blacklist_usb-storage
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+usb-storage\s*$'
@@ -3749,9 +3467,9 @@
   loop: "{{ usb_storage_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230503_Manage
-    - usb_storage_files.stdout_lines | length > 0
+    - usb_storage_files.stdout_lines | length == 0
 
-- name: STIGrule_230503__create_usb-storage.conf_as_needed
+- name: stigrule_230503__create_usb-storage.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/usb-storage.conf
     content: |
@@ -3765,45 +3483,45 @@
     - usb_storage_files.stdout_lines | length == 0
 
 # V-230504
-- name: STIGrule_230504__ensure_firewalld_present
+- name: stigrule_230504__ensure_firewalld_present
   ansible.builtin.dnf:
     name: firewalld
     state: present
   when: rhel8STIG_stigrule_230504_Manage
 
-- name: STIGrule_230504__ensure_python-firewall_present
+- name: stigrule_230504__ensure_python-firewall_present
   ansible.builtin.dnf:
     name: python3-firewall
     state: present
   when: rhel8STIG_stigrule_230504_Manage
 
-- name: STIGrule_230504__ensure_firewalld_running
+- name: stigrule_230504__ensure_firewalld_running
   ansible.builtin.service:
     name: firewalld
     state: started
   when: rhel8STIG_stigrule_230504_Manage
 
-- name: STIGrule_230504__get_active_zones
+- name: Get active firewall zones
   ansible.posix.firewalld_info:
     active_zones: true
   register: active_zones
   when:
     - rhel8STIG_stigrule_230504_Manage
 
-- name: STIGrule_230504__set_default_zone_fact
+- name: Define default firewall zone
   ansible.builtin.set_fact:
     default_zone: "{{ active_zones.firewalld_info.default_zone }}"
   when:
     - rhel8STIG_stigrule_230504_Manage
 
-- name: STIGrule_230504__get_detailed_zone_info
+- name: Get detailed default zone info
   ansible.posix.firewalld_info:
     zones: "{{ default_zone }}"
   register: zone_details
   when:
     - rhel8STIG_stigrule_230504_Manage
 
-- name: STIGrule_230504__create_custom_zone
+- name: stigrule_230504__create_custom_zone
   ansible.posix.firewalld:
     zone: "{{ rhel8STIG_stigrule_230504_customZone }}"
     state: present
@@ -3813,25 +3531,35 @@
     - rhel8STIG_stigrule_230504_Manage
     - zone_details.firewalld_info.zones[default_zone].target != 'DROP'
 
-- name: STIGrule_230504__set_custom_zone_shortname
+- name: stigrule_230504__set_custom_zone_shortname
   ansible.builtin.lineinfile:
     path: /etc/firewalld/zones/{{ rhel8STIG_stigrule_230504_customZone }}.xml
     regexp: '^(\s*)<short>.*</short>'
     line: "  <short>{{ rhel8STIG_stigrule_230504_customZone }}</short>"
     insertafter: '<zone'
     state: present
+  register: custom_zone_shortname
   when: rhel8STIG_stigrule_230504_Manage
 
-- name: STIGrule_230504__set_custom_zone_description
+- name: stigrule_230504__set_custom_zone_description
   ansible.builtin.lineinfile:
     path: /etc/firewalld/zones/{{ rhel8STIG_stigrule_230504_customZone }}.xml
     regexp: '^(\s*)<description>.*</description>'
     line: "  <description>{{ rhel8STIG_stigrule_230504_zoneDesc }}</description>"
     insertafter: '<short>'
     state: present
+  register: custom_zone_desc
   when: rhel8STIG_stigrule_230504_Manage
 
-- name: STIGrule_230504__set_zone_drop_target
+- name: Reload firewall rules
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+  changed_when: false
+  when:
+    - rhel8STIG_stigrule_230504_Manage
+    - custom_zone_shortname.changed or custom_zone_desc.changed
+
+- name: stigrule_230504__set_zone_drop_target
   ansible.posix.firewalld:
     zone: "{{ rhel8STIG_stigrule_230504_customZone }}"
     state: present
@@ -3841,7 +3569,7 @@
     - rhel8STIG_stigrule_230504_Manage
     - zone_details.firewalld_info.zones[default_zone].target != 'DROP'
 
-- name: STIGrule_230504__set_allowed_services
+- name: stigrule_230504__set_allowed_services
   ansible.posix.firewalld:
     zone: "{{ rhel8STIG_stigrule_230504_customZone }}"
     service: "{{ item }}"
@@ -3852,7 +3580,7 @@
     - rhel8STIG_stigrule_230504_Manage
     - zone_details.firewalld_info.zones[default_zone].target != 'DROP'
 
-- name: STIGrule_230504__set_allowed_ports
+- name: stigrule_230504__set_allowed_ports
   ansible.posix.firewalld:
     zone: "{{ rhel8STIG_stigrule_230504_customZone }}"
     port: "{{ item }}"
@@ -3863,7 +3591,7 @@
     - rhel8STIG_stigrule_230504_Manage
     - zone_details.firewalld_info.zones[default_zone].target != 'DROP'
 
-- name: STIGrule_230504__set_icmp_blocks
+- name: Set ICMP blocks
   ansible.posix.firewalld:
     zone: "{{ rhel8STIG_stigrule_230504_customZone }}"
     icmp_block: "{{ item }}"
@@ -3874,7 +3602,7 @@
     - rhel8STIG_stigrule_230504_Manage
     - zone_details.firewalld_info.zones[default_zone].target != 'DROP'
 
-- name: STIGrule_230504__assign_interfaces_to_custom_zone
+- name: stigrule_230504__assign_interfaces_to_custom_zone
   ansible.posix.firewalld:
     zone: "{{ rhel8STIG_stigrule_230504_customZone }}"
     interface: "{{ item }}"
@@ -3888,13 +3616,12 @@
 - name: Reload firewall rules
   ansible.builtin.command:
     cmd: firewall-cmd --reload
-  register: firewall_reload
   changed_when: false
   when:
     - rhel8STIG_stigrule_230504_Manage
     - create_custom_zone.changed
 
-- name: STIGrule_230504__set_custom_zone_as_default
+- name: stigrule_230504__set_custom_zone_as_default
   ansible.builtin.command: firewall-cmd --set-default-zone={{ rhel8STIG_stigrule_230504_customZone }}
   register: set_default_zone
   changed_when: '"ZONE_ALREADY_SET" not in set_default_zone.stderr'
@@ -3903,7 +3630,7 @@
     - zone_details.firewalld_info.zones[default_zone].target != 'DROP'
 
 # V-230507
-- name: STIGrule_230507__bluetooth_check
+- name: Check modprobe for bluetooth
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl bluetooth /etc/modprobe.d || true
@@ -3911,7 +3638,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_230507_Manage
 
-- name: STIGrule_230507__bluetooth_disable_install
+- name: stigrule_230507__bluetooth_disable_install
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*install\s+bluetooth\s+'
@@ -3925,9 +3652,9 @@
   loop: "{{ bluetooth_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230507_Manage
-    - bluetooth_files.stdout_lines | length > 0
+    - bluetooth_files.stdout_lines | length == 0
 
-- name: STIGrule_230507__blacklist_bluetooth
+- name: stigrule_230507__blacklist_bluetooth
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^\s*blacklist\s+bluetooth\s*$'
@@ -3941,9 +3668,9 @@
   loop: "{{ bluetooth_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_230507_Manage
-    - bluetooth_files.stdout_lines | length > 0
+    - bluetooth_files.stdout_lines | length == 0
 
-- name: STIGrule_230507__create_bluetooth.conf_as_needed
+- name: stigrule_230507__create_bluetooth.conf_as_needed
   ansible.builtin.copy:
     dest: /etc/modprobe.d/bluetooth.conf
     content: |
@@ -3957,318 +3684,231 @@
     - bluetooth_files.stdout_lines | length == 0
 
 # V-230508 RHEL-08-040120
-- name: Get mount info for /dev/shm
-  ansible.builtin.command: grep '/dev/shm' /etc/fstab
-  register: fstab_shm_entry
-  changed_when: false
-  failed_when: false
-
-- name: Parse fstab output
-  ansible.builtin.set_fact:
-    shm_fields: "{{ fstab_shm_entry.stdout.split() }}"
-  when:
-    - fstab_shm_entry.rc == 0
-
-- name: STIGrule_230508__add_nodev_dev_shm_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/dev/shm\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nodev\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230508_Manage
-    - fstab_shm_entry.rc == 0
-    - fstab_shm_entry | length != 0
-    - "'nodev' not in shm_fields[3]"
+- name: Set partition option 'nodev' for /dev/shm
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /dev/shm
+    stig_rule_id: 230508
+    partition_option: nodev
+  when: rhel8STIG_stigrule_230508_Manage
 
 # V-230509 RHEL-08-040121
-- name: STIGrule_230509__add_nosuid_dev_shm_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/dev/shm\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230509_Manage
-    - fstab_shm_entry.rc == 0
-    - fstab_shm_entry | length != 0
-    - "'nosuid' not in shm_fields[3]"
+- name: Set partition option 'nosuid' for /dev/shm
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /dev/shm
+    stig_rule_id: 230509
+    partition_option: nosuid
+  when: rhel8STIG_stigrule_230509_Manage
 
 # V-230510 RHEL-08-040122
-- name: STIGrule_230510__add_noexec_dev_shm_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/dev/shm\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,noexec\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230510_Manage
-    - fstab_shm_entry.rc == 0
-    - fstab_shm_entry | length != 0
-    - "'noexec' not in shm_fields[3]"
+- name: Set partition option 'noexec' for /dev/shm
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /dev/shm
+    stig_rule_id: 230510
+    partition_option: noexec
+  when: rhel8STIG_stigrule_230510_Manage
 
 # V-230511 RHEL-08-040123
-- name: Get mount info for /tmp
-  ansible.builtin.command: grep -w '/tmp' /etc/fstab
-  register: fstab_tmp_entry
-  changed_when: false
-  failed_when: false
-
-- name: Parse fstab output
-  ansible.builtin.set_fact:
-    tmp_fields: "{{ fstab_tmp_entry.stdout.split() }}"
-  when:
-    - fstab_tmp_entry.rc == 0
-
-- name: STIGrule_230511__add_nodev_tmp_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/tmp\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nodev\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230511_Manage
-    - fstab_tmp_entry.rc == 0
-    - fstab_tmp_entry | length != 0
-    - "'nodev' not in tmp_fields[3]"
+- name: Set partition option 'nodev' for /tmp
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /tmp
+    stig_rule_id: 230511
+    partition_option: nodev
+  when: rhel8STIG_stigrule_230511_Manage
 
 # V-230512 RHEL-08-040124
-- name: STIGrule_230512__add_nosuid_tmp_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/tmp\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230512_Manage
-    - fstab_tmp_entry.rc == 0
-    - fstab_tmp_entry | length != 0
-    - "'nosuid' not in tmp_fields[3]"
+- name: Set partition option 'nosuid' for /tmp
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /tmp
+    stig_rule_id: 230512
+    partition_option: nosuid
+  when: rhel8STIG_stigrule_230512_Manage
 
 # V-230513
-- name: STIGrule_230513__add_noexec_tmp_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    # regexp: '^([^#].+\s+/tmp\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    regexp: '^([^#]\S+\s+/tmp\s+\S+\s+)(\S+)(\s+\d+\s+\d+.*)$'
-    line: '\1\2,noexec\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230513_Manage
-    - fstab_tmp_entry.rc == 0
-    - fstab_tmp_entry | length != 0
-    - "'noexec' not in tmp_fields[3]"
+- name: Set partition option 'noexec' for /tmp
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /tmp
+    stig_rule_id: 230513
+    partition_option: noexec
+  when: rhel8STIG_stigrule_230513_Manage
 
 # V-230514 RHEL-08-040126
-- name: Get mount info for /var/log
-  ansible.builtin.command: grep -w '/var/log' /etc/fstab
-  register: fstab_varlog_entry
-  changed_when: false
-  failed_when: false
-
-- name: Parse fstab output
-  ansible.builtin.set_fact:
-    var_log_fields: "{{ fstab_varlog_entry.stdout.split() }}"
-  when:
-    - fstab_varlog_entry.rc == 0
-
-- name: STIGrule_230514__add_nodev_var_log_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/log\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nodev\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230514_Manage
-    - fstab_varlog_entry.rc == 0
-    - fstab_varlog_entry | length != 0
-    - "'nodev' not in var_log_fields[3]"
+- name: Set partition option 'nodev' for /var/log
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/log
+    stig_rule_id: 230514
+    partition_option: nodev
+  when: rhel8STIG_stigrule_230514_Manage
 
 # V-230515 RHEL-08-040127
-- name: STIGrule_230515__add_nosuid_var_log_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/log\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230515_Manage
-    - fstab_varlog_entry.rc == 0
-    - fstab_varlog_entry | length != 0
-    - "'nosuid' not in var_log_fields[3]"
+- name: Set partition option 'nosuid' for /var/log
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/log
+    stig_rule_id: 230515
+    partition_option: nosuid
+  when: rhel8STIG_stigrule_230515_Manage
 
 # V-230516 RHEL-08-040128
-- name: STIGrule_230516__add_noexec_var_log_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/log\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,noexec\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230516_Manage
-    - fstab_varlog_entry.rc == 0
-    - fstab_varlog_entry | length != 0
-    - "'noexec' not in var_log_fields[3]"
+- name: Set partition option 'noexec' for /var/log
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/log
+    stig_rule_id: 230516
+    partition_option: noexec
+  when: rhel8STIG_stigrule_230516_Manage
 
 # V-230517 RHEL-08-040129
-- name: Get mount info for /var/log/audit
-  ansible.builtin.command: grep -w '/var/log/audit' /etc/fstab
-  register: fstab_audit_entry
-  changed_when: false
-  failed_when: false
-
-- name: Parse fstab output
-  ansible.builtin.set_fact:
-    audit_fields: "{{ fstab_audit_entry.stdout.split() }}"
-  when:
-    - fstab_audit_entry.rc == 0
-
-- name: STIGrule_230517__add_nodev_var_log_audit_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/log/audit\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nodev\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230517_Manage
-    - fstab_audit_entry.rc == 0
-    - fstab_audit_entry | length != 0
-    - "'nodev' not in audit_fields[3]"
+- name: Set partition option 'nodev' for /var/log/audit
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/log/audit
+    stig_rule_id: 230517
+    partition_option: nodev
+  when: rhel8STIG_stigrule_230517_Manage
 
 # V-230518 RHEL-08-040130
-- name: STIGrule_230518__add_nosuid_var_log_audit_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/log/audit\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230518_Manage
-    - fstab_audit_entry.rc == 0
-    - fstab_audit_entry | length != 0
-    - "'nosuid' not in audit_fields[3]"
+- name: Set partition option 'nosuid' for /var/log/audit
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/log/audit
+    stig_rule_id: 230518
+    partition_option: nosuid
+  when: rhel8STIG_stigrule_230518_Manage
 
 # V-230519 RHEL-08-040131
-- name: STIGrule_230519__add_noexec_var_log_audit_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/log/audit\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,noexec\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230519_Manage
-    - fstab_audit_entry.rc == 0
-    - fstab_audit_entry | length != 0
-    - "'noexec' not in audit_fields[3]"
+- name: Set partition option 'noexec' for /var/log/audit
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/log/audit
+    stig_rule_id: 230519
+    partition_option: noexec
+  when: rhel8STIG_stigrule_230519_Manage
 
 # V-230520 RHEL-08-040132
-- name: Get mount info for /var/tmp
-  ansible.builtin.command: grep -w '/var/tmp' /etc/fstab
-  register: fstab_vartmp_entry
-  changed_when: false
-  failed_when: false
-
-- name: Parse fstab output
-  ansible.builtin.set_fact:
-    var_tmp_fields: "{{ fstab_vartmp_entry.stdout.split() }}"
-  when:
-    - fstab_vartmp_entry.rc == 0
-
-- name: STIGrule_230520__add_nodev_var_tmp_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/tmp\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nodev\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230520_Manage
-    - fstab_vartmp_entry.rc == 0
-    - fstab_vartmp_entry | length != 0
-    - "'nodev' not in var_tmp_fields[3]"
+- name: Set partition option 'nodev' for /var/tmp
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/tmp
+    stig_rule_id: 230520
+    partition_option: nodev
+  when: rhel8STIG_stigrule_230520_Manage
 
 # V-230521 RHEL-08-040133
-- name: STIGrule_230521__add_nosuid_var_tmp_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/tmp\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230521_Manage
-    - fstab_vartmp_entry.rc == 0
-    - fstab_vartmp_entry | length != 0
-    - "'nosuid' not in var_tmp_fields[3]"
+- name: Set partition option 'nosuid' for /var/tmp
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/tmp
+    stig_rule_id: 230521
+    partition_option: nosuid
+  when: rhel8STIG_stigrule_230521_Manage
 
 # V-230522 RHEL-08-040134
-- name: STIGrule_230522__add_noexec_var_tmp_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/var/tmp\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,noexec\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_230522_Manage
-    - fstab_vartmp_entry.rc == 0
-    - fstab_vartmp_entry | length != 0
-    - "'noexec' not in var_tmp_fields[3]"
+- name: Set partition option 'noexec' for /var/tmp
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/tmp
+    stig_rule_id: 230522
+    partition_option: noexec
+  when: rhel8STIG_stigrule_230522_Manage
 
 # V-230523
-- name: STIGrule_230523__fapolicyd_present
+- name: stigrule_230523__fapolicyd_present
   ansible.builtin.package:
     name: fapolicyd
     state: present
   when: rhel8STIG_stigrule_230523_Manage
 
 # V-230524
-- name: STIGrule_230524__usbguard_present
+- name: stigrule_230524__usbguard_present
   ansible.builtin.package:
     name: usbguard
     state: present
   register: usbguard_present
   when: rhel8STIG_stigrule_230524_Manage
 
-- name: STIGrule_230524__usbguard_present
+- name: stigrule_230524__usbguard_started
   ansible.builtin.service:
     name: usbguard
     state: started
     enabled: true
   when: rhel8STIG_stigrule_230524_Manage
 
-- name: STIGrule_230524__usbguard_list-devices
+- name: Generate rules based on connected USB devices
   ansible.builtin.command:
-    cmd: usbguard list-devices
+    cmd: usbguard generate-policy
   register: usbguard_devices
   changed_when: false
   when:
     - rhel8STIG_stigrule_230524_Manage
 
-- name: STIGrule_230524__usbguard_generate-policy
+- name: Check if USBGuard rules.conf exists
+  ansible.builtin.stat:
+    path: /etc/usbguard/rules.conf
+  register: usbguard_rules_conf
+  when:
+    - rhel8STIG_stigrule_230524_Manage
+
+- name: Read existing USBGuard rules
   ansible.builtin.shell:
-    cmd: usbguard generate-policy > /etc/usbguard/rules.conf
+    cmd: |
+      set -o pipefail
+      grep -Ev "^([[:space:]]*#|$)" /etc/usbguard/rules.conf || true
+  changed_when: false
+  register: usbguard_existing_rules
+  when:
+    - rhel8STIG_stigrule_230524_Manage
+    - usbguard_rules_conf.stat.exists
+
+- name: stigrule_230524__usbguard_update_existing_rules
+  ansible.builtin.lineinfile:
+    path: /etc/usbguard/rules.conf
+    line: "{{ item }}"
+    insertafter: EOF
+    state: present
+  loop: "{{ usbguard_devices.stdout_lines }}"
+  when:
+    - rhel8STIG_stigrule_230524_Manage
+    - usbguard_existing_rules is defined
+    - usbguard_existing_rules.stdout_lines | length > 0
+    - item not in usbguard_existing_rules.stdout_lines
+  notify: restart_usbguard
+
+- name: stigrule_230524__usbguard_generate_new_rules
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      usbguard generate-policy > /etc/usbguard/rules.conf
   register: usbguard_policy
   changed_when: usbguard_policy.rc == 0
   notify: restart_usbguard
   when:
     - rhel8STIG_stigrule_230524_Manage
-    - usbguard_devices.stdout | length > 0
+    - not usbguard_rules_conf.stat.exists
 
 # V-230525
-- name: STIGrule_230525__nfttables_default
+- name: stigrule_230525__nfttables_default
   ansible.builtin.lineinfile:
     path: /etc/firewalld/firewalld.conf
     search_string: '^FirewallBackend='
@@ -4312,7 +3952,7 @@
     - gnome_check.stdout_lines | length > 0
 
 # V-230532
-- name: STIGrule_230532__debug_shell_mask
+- name: stigrule_230532__debug_shell_mask
   ansible.builtin.systemd_service:
     name: debug-shell.service
     masked: true
@@ -4345,12 +3985,14 @@
     - "'postfix' in ansible_facts.packages"
     - >
       smtpd_check.stdout_lines | length == 0 or
-      'permit_mynetworks' not in smtpd_check.stdout or
-      'reject' not in smtpd_check.stdout or
-      smtpd_check.stdout
+      (
+        smtpd_check.stdout
         | regex_replace('^smtpd_client_restrictions\s*=\s*', '')
         | trim
-        | lower != rhel8STIG_stigrule_230550_smtpd_expected_value
+        | lower
+        !=
+        rhel8STIG_stigrule_230550_smtpd_expected_value | trim | lower
+      )
   notify: reload_postfix
 
 - name: stigrule_230550__verify_smtpd_client_restrictions
@@ -4363,7 +4005,9 @@
     smtpd_verify.stdout
       | regex_replace('^smtpd_client_restrictions\s*=\s*', '')
       | trim
-      | lower != rhel8STIG_stigrule_230550_smtpd_expected_value
+      | lower
+      !=
+      rhel8STIG_stigrule_230550_smtpd_expected_value | trim | lower
   when:
     - rhel8STIG_stigrule_230550_Manage
     - "'postfix' in ansible_facts.packages"
@@ -4377,11 +4021,10 @@
       - xorg-x11-server-utils
       - xorg-x11-server-Xwayland
     state: absent
-  notify: reboot
   when: rhel8STIG_stigrule_230553_Manage
 
 # V-230554
-- name: STIGrule_230554__ip_link_output
+- name: stigrule_230554__ip_link_output
   ansible.builtin.shell: |
     set -o pipefail
     ip link | grep -i promisc || true
@@ -4389,7 +4032,7 @@
   when: rhel8STIG_stigrule_230554_Manage
   changed_when: false
 
-- name: STIGrule_230554__promisc_off
+- name: stigrule_230554__promisc_off
   ansible.builtin.command:
     cmd: ip link set dev {{ item.split(':')[1] }} multicast off promisc off
   loop: "{{ iplink_out.stdout_lines }}"
@@ -4452,8 +4095,11 @@
     - tftp_installed.stdout_lines | length > 0
     - tftp_execstart.stdout | length == 0
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-237640 RHEL-08-010163
-- name: STIGrule_237640__grub2-tools_present
+- name: stigrule_237640__grub2-tools_present
   ansible.builtin.package:
     name: krb5-server
     state: absent
@@ -4585,7 +4231,7 @@
   when: rhel8STIG_stigrule_237643_Manage
 
 # V-244521
-- name: STIGrule_244521__grub2-tools_present
+- name: stigrule_244521__grub2-tools_present
   ansible.builtin.package:
     name: grub2-tools
     state: present
@@ -4593,7 +4239,7 @@
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
 
-- name: STIGrule_244521__current_superuser
+- name: stigrule_244521__current_superuser
   ansible.builtin.shell: |
     set -o pipefail
     grep 'set superusers=' /etc/grub.d/01_users | awk -F'"' '{print $2}' || true
@@ -4603,7 +4249,7 @@
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
 
-- name: STIGrule_244521__password_pbkdf2
+- name: stigrule_244521__check_if_password_pbkdf2_present
   ansible.builtin.shell: |
     set -o pipefail
     grep 'password_pbkdf2' /etc/grub.d/01_users | awk -F' ' '{print $2}' || true
@@ -4613,7 +4259,7 @@
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
 
-- name: STIGrule_244521__change_superuser_unique
+- name: stigrule_244521__change_superuser_unique
   ansible.builtin.lineinfile:
     path: /etc/grub.d/01_users
     regexp: '^(.*set superusers=)"[^"]*"'
@@ -4622,21 +4268,36 @@
   when:
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
-    - current_superuser.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
-  register: superuser_updated
+    - >
+      current_superuser.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
+  register: uefi_superuser_updated
 
-- name: STIGrule_244521__change_pbkdf2_to_unique
+- name: stigrule_244521__change_pbkdf2_to_unique
   ansible.builtin.lineinfile:
     path: /etc/grub.d/01_users
     regexp: '^(.*password_pbkdf2 )\S+(\s+\S+)?$'
     line: '\1"{{ rhel8STIG_stigrule_244521_unique_name }}"\2'
     backrefs: true
+  register: uefi_password_pbkdf2
   when:
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
-    - password_pbkdf2_user.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
+    - >
+      password_pbkdf2_user.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
 
-- name: STIGrule_244521__chown_01_users
+- name: stigrule_244521__chown_01_users
   ansible.builtin.file:
     path: /etc/grub.d/01_users
     owner: root
@@ -4646,16 +4307,17 @@
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
 
-- name: STIGrule_244521__grub2_update
+- name: stigrule_244521__grub2_update
   ansible.builtin.command: grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
   register: grub_mkconfig
   changed_when: grub_mkconfig.rc == 0
   when:
     - rhel8STIG_stigrule_244521_Manage
     - boot_mode == "UEFI"
+    - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
 
 # V-244522
-- name: STIGrule_244522__current_superuser
+- name: stigrule_244522__current_superuser
   ansible.builtin.shell: |
     set -o pipefail
     grep 'set superusers=' /etc/grub.d/01_users | awk -F'"' '{print $2}' || true
@@ -4665,7 +4327,7 @@
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
 
-- name: STIGrule_244522__password_pbkdf2_output
+- name: stigrule_244522__password_pbkdf2_output
   ansible.builtin.shell: |
     set -o pipefail
     grep 'password_pbkdf2' /etc/grub.d/01_users | awk -F' ' '{print $2}' || true
@@ -4675,7 +4337,7 @@
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
 
-- name: STIGrule_244522__change_superuser_unique
+- name: stigrule_244522__change_superuser_unique
   ansible.builtin.lineinfile:
     path: /etc/grub.d/01_users
     regexp: '^(.*set superusers=)"[^"]*"'
@@ -4684,21 +4346,35 @@
   when:
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
-    - current_superuser.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
-  register: superuser_updated
+    - >
+      current_superuser.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
+  register: bios_superuser_updated
 
-- name: STIGrule_244522__change_to_unique
+- name: stigrule_244522__change_to_unique
   ansible.builtin.lineinfile:
     path: /etc/grub.d/01_users
     regexp: '^(.*password_pbkdf2 )\S+(\s+\S+)?$'
     line: '\1"{{ rhel8STIG_stigrule_244522_unique_name }}"\2'
     backrefs: true
+  register: bios_password_pbkdf2
   when:
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
-    - password_pbkdf2_user_output.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
+    - password_pbkdf2_user_output.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
 
-- name: STIGrule_244522__chown_01_users
+- name: stigrule_244522__chown_01_users
   ansible.builtin.file:
     path: /etc/grub.d/01_users
     owner: root
@@ -4708,14 +4384,14 @@
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
 
-- name: STIGrule_244522__grub2_update
+- name: stigrule_244522__grub2_update
   ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
   register: grub2_mkconfig
   changed_when: grub2_mkconfig.rc == 0
   when:
     - rhel8STIG_stigrule_244522_Manage
     - boot_mode == "BIOS"
-    - password_pbkdf2_user_output.stdout_lines | intersect(interactive_user_list | map(attribute='key') | list) | length > 0
+    - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
 
 # v-244524
 - name: Check for sha512 in system-auth
@@ -4727,7 +4403,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_244524_Manage
 
-- name: STIGrule_244524__authselect
+- name: stigrule_244524__authselect
   ansible.builtin.command: "authselect select {{ rhel8STIG_stigrule_authselect_profile }} {{ rhel8STIG_stigrule_authselect_features | join(' ') }} {{ '--force' if rhel8STIG_stigrule_authselect_force | bool else '' }}"
   register: rhel8STIG_244524_authselect_enable
   changed_when: "'Profile' in rhel8STIG_244524_authselect_enable.stdout"
@@ -4736,45 +4412,29 @@
     - rhel8STIG_stigrule_244524_Manage
     - system_auth_sha512.stdout | length == 0
 
+# V-244529 RHEL-08-010544
+- name: Check if /var/tmp on seperate partition
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /var/tmp
+    stig_rule_id: 244529
+  when: rhel8STIG_stigrule_244529_Manage
+
 # V-244530 RHEL-08-010572
-- name: Check for /boot/efi partition
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      grep '/boot/efi' /etc/fstab || true
-  register: fstab_efi_entry
-  changed_when: false
+- name: Set partition option 'nosuid' for /boot/efi
+  ansible.builtin.include_tasks:
+    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+  vars:
+    disk_partition: /boot/efi
+    stig_rule_id: 244530
+    partition_option: nosuid
   when:
     - rhel8STIG_stigrule_244530_Manage
-
-- name: STIGrule_244530__fail_on_no_boot_efi_partition
-  ansible.builtin.fail:
-    msg: The directory '/boot/efi' is not on a seperate partition
-  when:
-    - rhel8STIG_stigrule_244530_Manage
-    - fstab_efi_entry.stdout_lines | length == 0
-
-- name: Parse fstab output
-  ansible.builtin.set_fact:
-    efi_fstab_fields: "{{ fstab_efi_entry.stdout.split() }}"
-  when:
-    - rhel8STIG_stigrule_244530_Manage
-    - fstab_efi_entry.stdout_lines | length > 0
-
-- name: STIGrule_244530__add_nosuid_boot_efi_etc_fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^([^#].+\s+/boot/efi\s+.+\s+)(.+)(\s+.+\s+.+)$'
-    line: '\1\2,nosuid\3'
-    backrefs: true
-    # backup: true
-  when:
-    - rhel8STIG_stigrule_244530_Manage
-    - fstab_efi_entry.stdout_lines | length > 0
-    - "'nosuid' not in efi_fstab_fields[3]"
+    - boot_mode == "UEFI"
 
 # V-244531
-- name: STIGrule_244531__excluded_paths
+- name: stigrule_244531__excluded_paths
   ansible.builtin.set_fact:
     exclude_ng_paths: >-
       {{ rhel8STIG_stigrule_244531_ignore_dirs
@@ -4783,7 +4443,7 @@
       }}
   when: rhel8STIG_stigrule_244531_Manage
 
-- name: STIGrule_244531__add_prune_argument
+- name: stigrule_244531__add_prune_argument
   ansible.builtin.set_fact:
     exclude_ng_cmd: '\( {{ exclude_ng_paths }} \) -prune -o'
   when:
@@ -4791,14 +4451,14 @@
     - exclude_ng_paths is defined
     - exclude_ng_paths | length > 0
 
-- name: STIGrule_244531__set_empty_var
+- name: stigrule_244531__set_empty_var
   ansible.builtin.set_fact:
     exclude_ng_cmd: ''
   when:
     - rhel8STIG_stigrule_244531_Manage
     - exclude_ng_paths is not defined or exclude_ng_paths | length == 0
 
-- name: STIGrule_244531__chmod_file_perms
+- name: stigrule_244531__chmod_file_perms
   ansible.builtin.shell: |
     set -o pipefail
     find '{{ item.value[4] }}' {{ exclude_ng_cmd }} -type f ! -type l \( -perm /g+w -o -perm /o+r -o -perm /o+w -o -perm /o+x \) ! -name '.*' -exec ls -al {} + -exec chmod g-w,o-rwx {} + || true
@@ -4807,7 +4467,7 @@
   changed_when: fix_file_perms.stdout | length > 0
   when: rhel8STIG_stigrule_244531_Manage
 
-- name: STIGrule_244531__chmod_dir_perms
+- name: stigrule_244531__chmod_dir_perms
   ansible.builtin.shell: |
     set -o pipefail
     find '{{ item.value[4] }}' {{ exclude_ng_cmd }} -type d ! -type l \( -perm /g+w -o -perm /o+r -o -perm /o+w -o -perm /o+x \) ! -name '.*' -exec ls -ald {} + -exec chmod g-w,o-rwx {} + || true
@@ -4834,7 +4494,7 @@
       }}
   loop: "{{ user_groups.results }}"
 
-- name: STIGrule_244532__excluded_paths
+- name: stigrule_244532__excluded_paths
   ansible.builtin.set_fact:
     exclude_244532_paths: >-
       {{ rhel8STIG_stigrule_244532_ignore_dirs
@@ -4843,7 +4503,7 @@
       }}
   when: rhel8STIG_stigrule_244532_Manage
 
-- name: STIGrule_244532__add_prune_argument
+- name: stigrule_244532__add_prune_argument
   ansible.builtin.set_fact:
     exclude_244532_cmd: '\( {{ exclude_244532_paths }} \) -prune -o'
   when:
@@ -4851,14 +4511,14 @@
     - exclude_244532_paths is defined
     - exclude_244532_paths | length > 0
 
-- name: STIGrule_244532__set_empty_var
+- name: stigrule_244532__set_empty_var
   ansible.builtin.set_fact:
     exclude_244532_cmd: ''
   when:
     - rhel8STIG_stigrule_244532_Manage
     - exclude_244532_paths is not defined or exclude_244532_paths | length == 0
 
-- name: STIGrule_244532_fix_file_group_owner
+- name: stigrule_244532_fix_file_group_owner
   ansible.builtin.shell: |
     set -o pipefail
     find '{{ item.0.value[4] }}' {{ exclude_244532_cmd }} -type f ! -type l {{ item.1 }} -exec ls -al {} + -exec chgrp {{ item.0.key }} {} + || true
@@ -4869,7 +4529,7 @@
   changed_when: fix_file_group_owner.stdout | length > 0
   when: rhel8STIG_stigrule_244532_Manage
 
-- name: STIGrule_244532_fix_dir_group_owner
+- name: stigrule_244532_fix_dir_group_owner
   ansible.builtin.shell: |
     set -o pipefail
     find '{{ item.0.value[4] }}' {{ exclude_244532_cmd }} -type d ! -type l {{ item.1 }} -exec ls -ald {} + -exec chgrp {{ item.0.key }} {} + || true
@@ -5028,7 +4688,7 @@
     - password_auth_nullok.stdout | length > 0
 
 # V-244545
-- name: STIGrule_244545__fapolicyd_permissive
+- name: stigrule_244545__fapolicyd_permissive
   community.general.ini_file:
     path: /etc/fapolicyd/fapolicyd.conf
     option: permissive
@@ -5038,7 +4698,7 @@
     group: fapolicyd
   when: rhel8STIG_stigrule_244545_Manage
 
-- name: STIGrule_244545__fapolicyd_enable
+- name: stigrule_244545__fapolicyd_enable
   ansible.builtin.service:
     name: fapolicyd
     state: started
@@ -5046,7 +4706,7 @@
   when: rhel8STIG_stigrule_244545_Manage
 
 # V-244546
-- name: STIGrule_244546__copy_fapolicyd_rules
+- name: stigrule_244546__copy_fapolicyd_rules
   ansible.builtin.copy:
     src: files/fapolicyd/
     dest: /etc/fapolicyd/rules.d/
@@ -5057,7 +4717,7 @@
   when: rhel8STIG_stigrule_244546_Manage
   register: copy_fapolicyd_rules
 
-- name: STIGrule_244546__fapolicyd_permissive
+- name: stigrule_244546__fapolicyd_permissive
   community.general.ini_file:
     path: /etc/fapolicyd/fapolicyd.conf
     option: permissive
@@ -5067,14 +4727,14 @@
     group: fapolicyd
   when: rhel8STIG_stigrule_244546_Manage
 
-- name: STIGrule_244546__fapolicyd_enable
+- name: stigrule_244546__fapolicyd_enable
   ansible.builtin.service:
     name: fapolicyd
     state: started
     enabled: true
   when: rhel8STIG_stigrule_244546_Manage
 
-- name: STIGrule_244546__fapolicyd_restart
+- name: stigrule_244546__fapolicyd_restart
   ansible.builtin.service:
     name: fapolicyd
     state: restarted
@@ -5082,7 +4742,7 @@
     - rhel8STIG_stigrule_244546_Manage
     - copy_fapolicyd_rules.changed
 
-- name: STIGrule_244546__Check for deny all rule (>= RHEL 8.5)
+- name: stigrule_244546__Check for deny all rule (>= RHEL 8.5)
   ansible.builtin.command: tail -n 1 /etc/fapolicyd/compiled.rules
   changed_when: false
   register: compiled_rules_85
@@ -5090,7 +4750,7 @@
     - rhel8STIG_stigrule_244546_Manage
     - ansible_distribution_version is version('8.5', '>=')
 
-- name: STIGrule_244546__Fail if a deny all rule doesnt exist (>= RHEL 8.5)
+- name: stigrule_244546__Fail if a deny all rule doesnt exist (>= RHEL 8.5)
   ansible.builtin.fail:
     msg: fapolicyd must employ a deny-all, permit-by-exception application whitelisting policy
   when:
@@ -5098,7 +4758,7 @@
     - ansible_distribution_version is version('8.5', '>=')
     - "('deny' not in compiled_rules_85.stdout) or ('perm=any' not in compiled_rules_85.stdout)"
 
-- name: STIGrule_244546__Check for deny all rule (<= RHEL 8.4)
+- name: stigrule_244546__Check for deny all rule (<= RHEL 8.4)
   ansible.builtin.command: tail -n 1 /etc/fapolicyd/fapolicyd.rules
   changed_when: false
   register: compiled_rules_84
@@ -5106,7 +4766,7 @@
     - rhel8STIG_stigrule_244546_Manage
     - ansible_distribution_version is version('8.4', '<=')
 
-- name: STIGrule_244546__Fail if a deny all rule doesnt exist (<= RHEL 8.4)
+- name: stigrule_244546__Fail if a deny all rule doesnt exist (<= RHEL 8.4)
   ansible.builtin.fail:
     msg: fapolicyd must employ a deny-all, permit-by-exception application whitelisting policy
   when:
@@ -5115,7 +4775,7 @@
     - "('deny' not in compiled_rules_84.stdout) or ('perm=any' not in compiled_rules_84.stdout)"
 
 # V-244547
-- name: STIGrule_244547__usbguard
+- name: stigrule_244547__usbguard
   ansible.builtin.package:
     name: usbguard
     state: present
@@ -5123,16 +4783,15 @@
   notify: STIGrule_230470__usbguard_daemon_conf_updated
 
 # V-244548
-- name: STIGrule_244548__usbguard_enable
+- name: stigrule_244548__usbguard_enable
   ansible.builtin.service:
     name: usbguard.service
     state: started
     enabled: true
   when: rhel8STIG_stigrule_244548_Manage
-  notify: STIGrule_230470__usbguard_daemon_conf_updated
 
 # V-250315
-- name: STIGrule_250315__faillock_conf
+- name: stigrule_250315__faillock_conf
   community.general.ini_file:
     path: /etc/security/faillock.conf
     option: dir
@@ -5147,16 +4806,17 @@
     - rhel8STIG_stigrule_250315_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-- name: STIGrule_250315__faillock_dir_present
+- name: stigrule_250315__faillock_dir_present
   ansible.builtin.file:
     state: directory
     path: "{{ rhel8STIG_stigrule_authselect_dir }}"
     mode: '0755'
+  register: faillock_dir
   when:
     - rhel8STIG_stigrule_250315_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-- name: STIGrule_250315__set_faillock_context
+- name: stigrule_250315__set_faillock_context
   community.general.sefcontext:
     target: "{{ rhel8STIG_stigrule_authselect_dir }}(/.*)?"
     state: present
@@ -5166,7 +4826,7 @@
     - rhel8STIG_stigrule_250315_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-- name: STIGrule_250315__aaply_faillock_context
+- name: stigrule_250315__apply_faillock_context
   ansible.builtin.command:
     cmd: restorecon -R -v {{ rhel8STIG_stigrule_authselect_dir }}
   register: apply_faillock_context
@@ -5174,8 +4834,9 @@
   when:
     - rhel8STIG_stigrule_250315_Manage
     - ansible_distribution_version is version('8.2', '>=')
+    - faillock_dir.changed or faillock_file_context.changed
 
-# - name: STIGrule_250315__get_faillock_files
+# - name: stigrule_250315__get_faillock_files
 #  ansible.builtin.find:
 #    paths: "{{ rhel8STIG_stigrule_authselect_dir }}"
 #    recurse: true
@@ -5185,7 +4846,7 @@
 #    - rhel8STIG_stigrule_250315_Manage
 #    - ansible_distribution_version is version('8.2', '>=')
 
-# - name: STIGrule_250315__remove_faillock_files
+# - name: stigrule_250315__remove_faillock_files
 #  ansible.builtin.file:
 #    path: "{{ item.path }}"
 #    state: absent
@@ -5194,7 +4855,7 @@
 #    - rhel8STIG_stigrule_250315_Manage
 #    - ansible_distribution_version is version('8.2', '>=')
 
-- name: STIGrule_250315__verify_selinux_context
+- name: stigrule_250315__verify_selinux_context
   ansible.builtin.command: matchpathcon -V {{ rhel8STIG_stigrule_authselect_dir }}
   register: matchpathcon_faillock
   changed_when: false
@@ -5266,7 +4927,7 @@
     - rhel8STIG_250316_context_check.stdout != "faillog_t"
 
 # V-250317
-- name: STIGrule_250317__find_config_files_with_forwarding
+- name: stigrule_250317__find_config_files_with_forwarding
   ansible.builtin.shell: |
       set -o pipefail
       grep -lr '^net.ipv4.conf.all.forwarding' $(find {{ sysctl_dirs | join(' ') }} -type f ! -type l 2>/dev/null) /etc/sysctl.conf 2>/dev/null || true
@@ -5284,20 +4945,21 @@
     - rhel8STIG_stigrule_250317_Manage
     - ansible_distribution_version is version('8.4', '>=')
 
-- name: STIGrule_250317__disable_forwarding_in_conf_files
+- name: stigrule_250317__disable_forwarding_in_conf_files
   ansible.posix.sysctl:
     name: net.ipv4.conf.all.forwarding
     value: 0
     state: present
     sysctl_file: "{{ item }}"
     reload: true
+    sysctl_set: true
   loop: "{{ sysctl_output_files.stdout_lines }}"
   when:
     - rhel8STIG_stigrule_250317_Manage
     - sysctl_output_files.stdout_lines | length > 0
     - ansible_distribution_version is version('8.4', '>=')
 
-- name: STIGrule_250317__define_new_forwarding_config
+- name: stigrule_250317__define_new_forwarding_config
   ansible.posix.sysctl:
     name: net.ipv4.conf.all.forwarding
     value: 0
@@ -5337,14 +4999,14 @@
     - blank_password_accounts.stdout | length > 0
 
 # V-251707
-- name: STIGrule_251707__find_system_wide_lib_dirs_enforce_755
+- name: stigrule_251707__find_system_wide_lib_dirs_enforce_755
   ansible.builtin.shell: find /lib /lib64 /usr/lib /usr/lib64 \( -perm /g+w -o -perm /o+w \) -type d ! -xtype l -exec ls -ald {} + -exec chmod g-w,o-w {} +;
   register: libs_mode
   changed_when: libs_mode.stdout_lines | length > 0
   when: rhel8STIG_stigrule_251707_Manage
 
 # V-251708
-- name: STIGrule_251708__excluded_lib_paths
+- name: stigrule_251708__excluded_lib_paths
   ansible.builtin.set_fact:
     STIGrule_251708_exclude_lib_paths: >-
       {{ rhel8STIG_stigrule_251708_ignore_dirs
@@ -5353,7 +5015,7 @@
       }}
   when: rhel8STIG_stigrule_251708_Manage
 
-- name: STIGrule_251708__Build prune clause when variable is non-empty
+- name: stigrule_251708__Build prune clause when variable is non-empty
   ansible.builtin.set_fact:
     rhel8STIG_stigrule_251708_exclude_cmd: '\( {{ STIGrule_251708_exclude_lib_paths }} \) -prune -o '
   when:
@@ -5361,21 +5023,21 @@
     - STIGrule_251708_exclude_lib_paths is defined
     - STIGrule_251708_exclude_lib_paths | length > 0
 
-- name: STIGrule_251708__Build prune clause when variable is empty
+- name: stigrule_251708__Build prune clause when variable is empty
   ansible.builtin.set_fact:
     rhel8STIG_stigrule_251708_exclude_cmd: ''
   when:
     - rhel8STIG_stigrule_251708_Manage
     - STIGrule_251708_exclude_lib_paths is not defined or STIGrule_251708_exclude_lib_paths | length == 0
 
-- name: STIGrule_251708__verify_root_owns_libraries
+- name: stigrule_251708__verify_root_owns_libraries
   ansible.builtin.shell: find /lib /lib64 /usr/lib /usr/lib64 {{ rhel8STIG_stigrule_251708_exclude_cmd }} ! -user root -type d ! -xtype l -exec ls -ald {} + -exec chown root {} +;
   register: libs_own
   changed_when: libs_own.stdout_lines | length > 0
   when: rhel8STIG_stigrule_251708_Manage
 
 # V-251709
-- name: STIGrule_251709__excluded_lib_paths
+- name: stigrule_251709__excluded_lib_paths
   ansible.builtin.set_fact:
     STIGrule_251709_exclude_lib_paths: >-
       {{ rhel8STIG_stigrule_251709_ignore_dirs
@@ -5384,7 +5046,7 @@
       }}
   when: rhel8STIG_stigrule_251709_Manage
 
-- name: STIGrule_251709__Build prune clause when variable is non-empty
+- name: stigrule_251709__Build prune clause when variable is non-empty
   ansible.builtin.set_fact:
     rhel8STIG_stigrule_251709_exclude_cmd: '\( {{ STIGrule_251709_exclude_lib_paths }} \) -prune -o '
   when:
@@ -5392,7 +5054,7 @@
     - STIGrule_251709_exclude_lib_paths is defined
     - STIGrule_251709_exclude_lib_paths | length > 0
 
-- name: STIGrule_251709__Build prune clause when variable is empty
+- name: stigrule_251709__Build prune clause when variable is empty
   ansible.builtin.set_fact:
     rhel8STIG_stigrule_251709_exclude_cmd: ''
   when:
@@ -5416,21 +5078,21 @@
   when:
     - rhel8STIG_stigrule_251709_Manage
 
-- name: STIGrule_251709__verify_root_or_sys_account_group_owns_libraries
+- name: stigrule_251709__verify_root_or_sys_account_group_owns_libraries
   ansible.builtin.shell: find /lib /lib64 /usr/lib /usr/lib64 {{ rhel8STIG_stigrule_251709_exclude_cmd }} {{ sys_grp_args }} -type d ! -xtype l -exec ls -ald {} + -exec chgrp {{ rhel8STIG_stigrule_251709_chgrp_acct }} {} +;
   register: libs_grp
   changed_when: libs_grp.stdout_lines | length > 0
   when: rhel8STIG_stigrule_251709_Manage
 
 # V-251710
-- name: STIGrule_251710__aide_present
+- name: stigrule_251710__aide_present
   ansible.builtin.package:
     name: aide
     state: present
   when:
     - rhel8STIG_stigrule_251710_Manage
 
-- name: STIGrule_251710__read_aide.conf
+- name: stigrule_251710__read_aide.conf
   ansible.builtin.slurp:
     path: /etc/aide.conf
   register: aide_conf_raw
@@ -5438,14 +5100,14 @@
   when:
     - rhel8STIG_stigrule_251710_Manage
 
-- name: STIGrule_251710__Extract relevant lines from aide.conf
+- name: stigrule_251710__Extract relevant lines from aide.conf
   ansible.builtin.set_fact:
     aide_conf_text: "{{ aide_conf_raw.content | b64decode }}"
   no_log: true
   when:
     - rhel8STIG_stigrule_251710_Manage
 
-- name: STIGrule_251710__set_line_vars
+- name: stigrule_251710__set_line_vars
   ansible.builtin.set_fact:
     aide_dbdir_line: >-
       {{ aide_conf_text
@@ -5462,7 +5124,7 @@
   when:
     - rhel8STIG_stigrule_251710_Manage
 
-- name: STIGrule_251710__extract_vars_from_lines
+- name: stigrule_251710__extract_vars_from_lines
   ansible.builtin.set_fact:
     aide_dbdir: >-
       {{ aide_dbdir_line
@@ -5479,7 +5141,7 @@
   when:
     - rhel8STIG_stigrule_251710_Manage
 
-- name: STIGrule_251710__expand_DBDIR_in_paths
+- name: stigrule_251710__expand_DBDIR_in_paths
   ansible.builtin.set_fact:
     aide_database_path: >-
       {{ aide_database | regex_replace('@@{DBDIR}', aide_dbdir) }}
@@ -5488,7 +5150,7 @@
   when:
     - rhel8STIG_stigrule_251710_Manage
 
-- name: STIGrule_251710__stat_db_file
+- name: stigrule_251710__stat_db_file
   ansible.builtin.stat:
     path: "{{ aide_database_path }}"
     get_checksum: false
@@ -5497,7 +5159,7 @@
   when:
     - rhel8STIG_stigrule_251710_Manage
 
-- name: STIGrule_251710__aide_check
+- name: stigrule_251710__aide_check
   ansible.builtin.command: /usr/sbin/aide --check
   register: aide_check_output
   failed_when: aide_check_output.rc not in [0,1,2,3,4,5,6,7]
@@ -5509,7 +5171,7 @@
     - rhel8STIG_stigrule_251710_Manage
     - aide_db_stat.stat.exists
 
-- name: STIGrule_251710__aide_initialize
+- name: stigrule_251710__aide_initialize
   ansible.builtin.command: /usr/sbin/aide --init
   async: 1800
   poll: 30
@@ -5521,29 +5183,31 @@
       (aide_db_stat.stat.exists and (aide_check_output.stderr | length > 0))
       or (not aide_db_stat.stat.exists)
 
-- name: STIGrule_251710__aide_update_db
-  ansible.builtin.command: /usr/sbin/aide --update
-  async: 1800
-  poll: 30
-  register: aide_update_out
-  changed_when: "'New AIDE database written' in aide_update_out.stdout"
-  failed_when: aide_update_out.rc not in [0,1,2,3,4,5,6,7]
-  no_log: true
-  when:
-    - rhel8STIG_stigrule_251710_Manage
-    - "aide_db_stat.stat.exists and ('AIDE found differences' in aide_check_output.stdout)"
+# - name: stigrule_251710__aide_update_db
+#   ansible.builtin.command: /usr/sbin/aide --update
+#   async: 1800
+#   poll: 30
+#   register: aide_update_out
+#   changed_when: "'New AIDE database written' in aide_update_out.stdout"
+#   failed_when: aide_update_out.rc not in [0,1,2,3,4,5,6,7]
+#   no_log: true
+#   when:
+#     - rhel8STIG_stigrule_251710_Manage
+#     - "aide_db_stat.stat.exists and ('AIDE found differences' in aide_check_output.stdout)"
 
-- name: STIGrule_251710__rename_AIDE_db
+- name: stigrule_251710__rename_AIDE_db
   ansible.builtin.command: mv -f /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
   #  creates: /var/lib/aide/aide.db.gz
   changed_when: aide_move.rc == 0
   register: aide_move
   when:
     - rhel8STIG_stigrule_251710_Manage
-    - aide_out.changed or aide_update_out.changed
+#     - aide_out.changed or aide_update_out.changed
+    - aide_out.changed
+
 
 # V-251711
-- name: STIGrule_251711__includedir_present
+- name: stigrule_251711__includedir_present
   ansible.builtin.lineinfile:
     path: /etc/sudoers
     regexp: '^#includedir'
@@ -5551,7 +5215,7 @@
     state: present
   when: rhel8STIG_stigrule_251711_Manage
 
-- name: STIGrule_251711_grep_sudoers
+- name: stigrule_251711_grep_sudoers
   ansible.builtin.shell: |
     set -o pipefail
     grep -rl '^include' /etc/sudoers.d || true
@@ -5559,7 +5223,7 @@
   changed_when: false
   when: rhel8STIG_stigrule_251711_Manage
 
-- name: STIGrule_251711__remove_nested_include
+- name: stigrule_251711__remove_nested_include
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^(include.*)$'
@@ -5570,7 +5234,7 @@
     - sudoers_include.stdout_lines | length > 0
 
 # V-251712
-- name: STIGrule_251712__remove_pam_succeed_if_sudo
+- name: stigrule_251712__remove_pam_succeed_if_sudo
   ansible.builtin.lineinfile:
     path: /etc/pam.d/sudo
     regexp: '.*pam_succeed_if.*'
@@ -5593,7 +5257,10 @@
   notify: apply_authselect_changes
   when:
     - rhel8STIG_stigrule_251713_Manage
-    - system_auth_pwquality.stdout | length > 0
+    - system_auth_pwquality.stdout | length == 0
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
 
 # V-251716
 - name: Find pwquality drop-in files
@@ -5666,7 +5333,7 @@
   community.general.ini_file:
     path: /etc/security/pwquality.conf
     option: retry
-    value: '3'
+    value: "{{ rhel8STIG_stigrule_logon_DenyAttempts }}"
     state: present
     no_extra_spaces: false
     create: true
@@ -5692,22 +5359,25 @@
   register: new_system_target
   changed_when: new_system_target.rc == 0
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-254520
-- name: STIGrule_254520__enable SSH logins for sysadm_u
+- name: stigrule_254520__enable SSH logins for sysadm_u
   ansible.posix.seboolean:
     name: ssh_sysadm_login
     state: true
     persistent: true
   when: rhel8STIG_stigrule_254520_Manage
 
-- name: STIGrule_254520__get_selinux_logins
+- name: stigrule_254520__get_selinux_logins
   ansible.builtin.command:
     cmd: semanage login -l -n
   register: semanage_login_raw
   changed_when: false
   when: rhel8STIG_stigrule_254520_Manage
 
-- name: STIGrule_254520__build_login_dictionary
+- name: stigrule_254520__build_login_dictionary
   ansible.builtin.set_fact:
     selinux_login_map: >-
       {{
@@ -5727,7 +5397,7 @@
           | list }}
   when: rhel8STIG_stigrule_254520_Manage
 
-- name: Ensure sysadm_u SELinux user is set on {{ ansible_user }}
+- name: Ensure sysadm_u SELinux user is set for ansible_user, {{ ansible_user }}
   ansible.builtin.set_fact:
     rhel8STIG_stigrule_254520_sysadm_u_selinux_users: "{{ rhel8STIG_stigrule_254520_sysadm_u_selinux_users + ['{{ ansible_user }}'] }}"
   when:
@@ -5735,7 +5405,7 @@
       rhel8STIG_stigrule_254520_sysadm_u_selinux_users | length == 0 or
       ansible_user not in rhel8STIG_stigrule_254520_sysadm_u_selinux_users
 
-- name: STIGrule_254520__set_specified users to the sysadm_u SELinux user # noqa: command-instead-of-shell
+- name: stigrule_254520__set_specified_users_sysadm_u # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: >-
       semanage login
@@ -5770,7 +5440,7 @@
     - current_seuser != target_seuser
       or current_range != desired_range
 
-- name: STIGrule_254520__set_specified users to the staff_u SELinux user # noqa: command-instead-of-shell
+- name: stigrule_254520__set_specified_users_staff_u # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: >-
       semanage login
@@ -5805,7 +5475,7 @@
     - current_seuser != target_seuser
       or current_range != desired_range
 
-- name: STIGrule_254520__set_specified users to the user_u SELinux user # noqa: command-instead-of-shell
+- name: stigrule_254520__set_specified_users_user_u # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: >-
       semanage login
@@ -5843,7 +5513,7 @@
 - name: Reset Connection to reset user context
   ansible.builtin.meta: reset_connection
 
-- name: STIGrule_254520__set the default SELinux user on the system
+- name: stigrule_254520__set the default SELinux user on the system
   community.general.selogin:
     login: __default__
     seuser: "{{ rhel8STIG_stigrule_254520_default_selinux_users.seuser }}"
@@ -5854,7 +5524,7 @@
     - rhel8STIG_stigrule_254520_set_default_user_context
 
 # V-256973
-- name: STIGrule_256973__copy_GPG_key_file
+- name: stigrule_256973__copy_GPG_key_file
   ansible.builtin.copy:
     src: files/RPM-GPG-KEY-redhat-release
     dest: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -5863,14 +5533,14 @@
     mode: '644'
   when: rhel8STIG_stigrule_256973_Manage
 
-- name: STIGrule_256973__import_GPG_key
+- name: stigrule_256973__import_GPG_key
   ansible.builtin.rpm_key:
     state: present
     key: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
   when: rhel8STIG_stigrule_256973_Manage
 
 # V-257258
-- name: STIGrule_257258__stopidlesessionsec_set_correctly
+- name: stigrule_257258__set_StopIdleSessionSec
   ansible.builtin.lineinfile:
     path: /etc/systemd/logind.conf
     regexp: '^StopIdleSessionSec=.*'
@@ -5901,8 +5571,11 @@
     - rhel8STIG_stigrule_268322_Manage
     - system_auth_nullok.stdout | length > 0
 
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
+
 # V-272482
-- name: STIGrule_272482__set_MACs_openssh_policy_txt
+- name: stigrule_272482__update_openssh_approved_MACs
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^MACs.*'
@@ -5916,13 +5589,13 @@
   register: fips_update_macs
   notify: ssh_restart
 
-- name: STIGrule_272482__update_crypto_policy # noqa: command-instead-of-shell
+- name: stigrule_272482__update_crypto_policy # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
-    - rhel8STIG_stigrule_230252_Manage
+    - rhel8STIG_stigrule_272482_Manage
     - >
       (not current_crypto_policy.stdout.startswith('FIPS'))
       or (fips_update_macs.changed)
@@ -5931,7 +5604,7 @@
   notify: reboot
 
 # V-272483
-- name: STIGrule_272483__set_ciphers_openssh_policy
+- name: stigrule_272483__update_openssh_approved_ciphers
   ansible.builtin.lineinfile:
     path: "{{ item }}"
     regexp: '^Ciphers.*'
@@ -5945,11 +5618,11 @@
   when: rhel8STIG_stigrule_272483_Manage
   notify: ssh_restart
 
-- name: STIGrule_272483__update_crypto_policy # noqa: command-instead-of-shell
+- name: stigrule_272483__update_crypto_policy # noqa: command-instead-of-shell
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   when:
     - rhel8STIG_stigrule_272483_Manage
     - >
@@ -5960,7 +5633,7 @@
   notify: reboot
 
 # V-272484
-- name: STIGrule_272484__Ensure_type_sysadm_t_present_on_etc_sudoers_lines
+- name: stigrule_272484__Ensure_type_sysadm_t_present_on_etc_sudoers_lines
   ansible.builtin.lineinfile:
     path: /etc/sudoers
     backrefs: true
@@ -5970,7 +5643,7 @@
   when:
     - rhel8STIG_stigrule_272484_Manage
 
-- name: STIGrule_272484__Ensure_role_sysadm_r_present_on_etc_sudoers_lines
+- name: stigrule_272484__Ensure_role_sysadm_r_present_on_etc_sudoers_lines
   ansible.builtin.lineinfile:
     path: /etc/sudoers
     backrefs: true
@@ -5980,7 +5653,7 @@
   when:
     - rhel8STIG_stigrule_272484_Manage
 
-- name: STIGrule_272484__Find sudoers.d files
+- name: stigrule_272484__Find sudoers.d files
   ansible.builtin.find:
     paths: /etc/sudoers.d
     file_type: file
@@ -6018,7 +5691,7 @@
       sudoers_d_files.matched | int == 0 or
       "ansible_user not in (sudoers_d_files.files | map(attribute='path') | map('basename') | list)"
 
-- name: STIGrule_272484__Ensure_type_sysadm_t_present_on_etc_sudoers.d_lines
+- name: stigrule_272484__Ensure_type_sysadm_t_present_on_etc_sudoers.d_lines
   ansible.builtin.lineinfile:
     path: "{{ item.path }}"
     backrefs: true
@@ -6033,7 +5706,7 @@
       "ansible_user not in (sudoers_d_files.files | map(attribute='path') | map('basename') | list)"
     - item.path not in rhel8STIG_stigrule_272484_ignore_files
 
-- name: STIGrule_272484__Ensure_role_sysadm_r_present_on_etc_sudoers.d_lines
+- name: stigrule_272484__Ensure_role_sysadm_r_present_on_etc_sudoers.d_lines
   ansible.builtin.lineinfile:
     path: "{{ item.path }}"
     backrefs: true
@@ -6117,21 +5790,19 @@
   when:
     - rhel8STIG_stigrule_279932_Manage
     - >
-      crypto_policy_applied.stdout != "The configured policy is applied" or
-      crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
+      crypto_policy_applied.stdout != "The configured policy is applied"
 
 - name: stigrule_279932__set_crypto_policy
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      update-crypto-policies --set FIPS:{{ (['STIG'] + (crypto_subpolicies | default('')) | reject('equalto', '') | list) | unique | join(':') }}
+      update-crypto-policies --set FIPS:{{ crypto_subpolicies }}
   notify: reboot
   register: rhel8STIG_279932_policy_set
   changed_when: "'Setting system policy' in rhel8STIG_279932_policy_set.stdout"
   when:
     - rhel8STIG_stigrule_279932_Manage
-    - crypto_policy_applied.stdout != "The configured policy is applied" or
-      crypto_policy_name.stdout != rhel8STIG_stigrule_279932_Policy
+    - crypto_policy_applied.stdout != "The configured policy is applied"
 
 # V-279933 RHEL-08-010270
 - name: stigrule_279933__install_crypto_policies_package

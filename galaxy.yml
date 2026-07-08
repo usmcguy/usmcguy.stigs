@@ -1,0 +1,15 @@
+namespace: "usmcguy"
+name: "stigs"
+version: "1.0.0"
+readme: "README.md"
+description: Ansible Supplemental STIG Roles
+authors:
+    - "Dave King (https://github.com/usmcguy)"
+    - "Glenn Mora Rangel (https://github.com/glennmora)"
+# dependencies: []
+license:
+    - "Apache-2.0"
+tags:
+    - infrastructure
+    - linux
+repository: "https://github.com/usmcguy/usmcguy.stigs"

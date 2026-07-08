@@ -1,0 +1,11 @@
+ancestor: null
+releases:
+  1.0.0:
+    changes:
+      major_changes:
+      - Intial release - Tested execution on a fresh install of RHEL 8 with Server
+        GUI
+      release_summary: Initial release of usmcguy.stigs collection
+    fragments:
+    - initial-commit.yml
+    release_date: '2026-07-08'

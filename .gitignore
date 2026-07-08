@@ -1,5 +1,14 @@
 .ansible/
 .config/
-roles/rhel8STIG_supp/callback_plugins/__pycache__/
+roles/rhel8stig_supp/callback_plugins/__pycache__/
+roles/rhel9stig_supp/callback_plugins/__pycache__/
 test*
 *.log
+AGENTS.md
+.github/
+.vscode
+ansible.cfg
+.venv
+.env
+.key
+id_rsa*

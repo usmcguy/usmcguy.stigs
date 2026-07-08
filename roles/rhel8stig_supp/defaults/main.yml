@@ -1,5 +1,13 @@
 # Global vars
 rhel8STIG_allow_system_reboot: true
+rhel8STIG_stigrule_audit_tool_bins:
+  - /usr/sbin/auditctl
+  - /usr/sbin/auditd
+  - /usr/sbin/ausearch
+  - /usr/sbin/aureport
+  - /usr/sbin/autrace
+  - /usr/sbin/rsyslogd
+  - /usr/sbin/augenrules
 rhel8STIG_stigrule_authselect_features:
   - with-faillock
   - with-files-access-provider
@@ -95,6 +103,7 @@ rhel8STIG_stigrule_230262_Manage: true
 rhel8STIG_stigrule_230263_Manage: true
 # V-230264 RHEL-08-010370
 rhel8STIG_stigrule_230264_Manage: true
+rhel8STIG_stigrule_230264_gpgcheck: 1
 # V-230271
 rhel8STIG_stigrule_230271_Manage: true
 rhel8STIG_stigrule_230271_sudoers_nopasswd: []
@@ -120,6 +129,14 @@ rhel8STIG_stigrule_230284_Manage: true
 rhel8STIG_stigrule_230286_Manage: true
 # V-230287 RHEL-08-010490
 rhel8STIG_stigrule_230287_Manage: true
+# V-230292 RHEL-08-010570
+rhel8STIG_stigrule_230292_Manage: true
+# V-230293 RHEL-08-010571
+rhel8STIG_stigrule_230293_Manage: true
+# V-230294 RHEL-08-010572
+rhel8STIG_stigrule_230294_Manage: true
+# V-230295 RHEL-08-010573
+rhel8STIG_stigrule_230295_Manage: true
 # V-230299 RHEL-08-010570
 rhel8STIG_stigrule_230299_Manage: true
 # V-230300 RHEL-08-010571
@@ -149,18 +166,13 @@ rhel8STIG_stigrule_230304_Manage: true
 rhel8STIG_stigrule_230305_Manage: true
 # V-230306 RHEL-08-010630
 rhel8STIG_stigrule_230306_Manage: true
-rhel8STIG_stigrule_230306_ignore_dirs: []
+rhel8STIG_stigrule_230306_ignore_paths: []
 # V-230307 RHEL-08-010640
 rhel8STIG_stigrule_230307_Manage: true
-rhel8STIG_stigrule_230307_ignore_dirs: []
+rhel8STIG_stigrule_230307_ignore_paths: []
 # V-230308 RHEL-08-010650
 rhel8STIG_stigrule_230308_Manage: true
-rhel8STIG_stigrule_230308_ignore_dirs: []
-# V-230309 RHEL-08-010660
-# rhel8STIG_stigrule_230309_Manage: true
-# rhel8STIG_stigrule_230309_ignore_dirs: []
-# V-230311
-# rhel8STIG_stigrule_230311_Manage: true
+rhel8STIG_stigrule_230308_ignore_paths: []
 # V-230312 RHEL-08-010672
 rhel8STIG_stigrule_230312_Manage: true
 # V-230316
@@ -313,14 +325,6 @@ rhel8STIG_stigrule_230474_Manage: true
 # V-230475
 rhel8STIG_stigrule_230475_Manage: true
 rhel8STIG_stigrule_230475_aide_attrs: "p+i+n+u+g+s+b+acl+xattrs+sha512"
-rhel8STIG_stigrule_230475_aide_bins:
-  - /usr/sbin/auditctl
-  - /usr/sbin/auditd
-  - /usr/sbin/ausearch
-  - /usr/sbin/aureport
-  - /usr/sbin/autrace
-  - /usr/sbin/rsyslogd
-  - /usr/sbin/augenrules
 # V-230479
 rhel8STIG_stigrule_230479_Manage: true
 rhel8STIG_stigrule_230479_syslog_host: syslogHost
@@ -328,7 +332,10 @@ rhel8STIG_stigrule_230479_syslog_port: 514
 rhel8STIG_stigrule_230479_protocol: UDP # UDP or TCP
 # V-230484
 rhel8STIG_stigrule_230484_Manage: true
-rhel8STIG_stigrule_230484_ntp_server: 0.us.pool.ntp.mil
+rhel8STIG_stigrule_230484_ntp_directive: server
+rhel8STIG_stigrule_230484_ntp_source:
+  - 0.us.pool.ntp.mil
+rhel8STIG_stigrule_230484_ntp_maxpoll: 16
 # V-230485 RHEL-08-030741
 rhel8STIG_stigrule_230485_Manage: true
 # V-230486 RHEL-08-030742
@@ -405,8 +412,6 @@ rhel8STIG_stigrule_230523_Manage: true
 rhel8STIG_stigrule_230524_Manage: true
 # V-230525
 rhel8STIG_stigrule_230525_Manage: true
-# V-230529
-# rhel8STIG_stigrule_230529_Manage: true
 # V-230530 RHEL-08-040171
 rhel8STIG_stigrule_230530_Manage: true
 # V-230531
@@ -457,6 +462,8 @@ rhel8STIG_stigrule_244524_Manage: true
 # V-244525
 # rhel8STIG_stigrule_244525_Manage: true
 # rhel8STIG_stigrule_244525_ClientAliveInterval: 600
+# V-244529 RHEL-08-010544
+rhel8STIG_stigrule_244529_Manage: true
 # V-244530 RHEL-08-010572
 rhel8STIG_stigrule_244530_Manage: true
 # V-244531
