@@ -12,3 +12,6 @@ ansible.cfg
 .env
 .key
 id_rsa*
+inventory
+site.yml
+enforce.sh
