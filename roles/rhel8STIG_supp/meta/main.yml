@@ -1,10 +1,10 @@
 galaxy_info:
   author: Dave King (USMCguy@gmail.com) & Glenn Mora Rangel
-  description: RHEL 8 Supplemental STIG Role
+  description: Ansible Supplemental STIG Roles
   namespace: "usmcguy"
-  role_name: "rhel8stig_supp"
+  role_name: "stigs"
   license: Apache-2.0
-  min_ansible_version: "2.15"
+  min_ansible_version: "2.16"
   platforms:
     - name: EL # Red Hat Enterprise Linux
       versions:
