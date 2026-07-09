@@ -75,7 +75,7 @@ class CallbackModule(CallbackBase):
             return
         rev = self._get_rev(nid)
         key = "{}r{}".format(nid, rev)
-        if self.rules.get(key, "Unknown") != False:
+        if self.rules.get(key, "Unknown") is not False:
             self.rules[key] = result.is_changed()
 
     def v2_playbook_on_stats(self, stats):
