@@ -58,7 +58,7 @@ class CallbackModule(CallbackBase):
 
     def _get_rev(self, nid):
         with open(self.stig_path, "r") as f:
-            r = "SV-{}r(?P<rev>\d+)_rule".format(nid)
+            r = r"SV-{}r(?P<rev>\d+)_rule".format(nid)
             m = re.search(r, f.read())
         if m:
             rev = m.group("rev")
@@ -68,7 +68,7 @@ class CallbackModule(CallbackBase):
 
     def v2_runner_on_ok(self, result):
         name = result._task.get_name()
-        m = re.search("stigrule_(?P<id>\d+)", name, re.IGNORECASE)
+        m = re.search(r"stigrule_(?P<id>\d+)", name, re.IGNORECASE)
         if m:
             nid = m.group("id")
         else:
