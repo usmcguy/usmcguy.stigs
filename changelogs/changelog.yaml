@@ -9,3 +9,12 @@ releases:
     fragments:
     - initial-commit.yml
     release_date: '2026-07-08'
+  1.0.1:
+    changes:
+      bugfixes:
+      - U_RHEL_8_STIG_V2R7_Manual-xccdf.xml - replaced unicode characters with ASCII
+      - stig_xml.py - changed conditional logic on line 78 from '!=' to 'is not'.
+      - stig_xml.py - on lines 61 and 71 set the regex to be a raw string with 'r'.
+    fragments:
+    - file_fixes.yml
+    release_date: '2026-07-09'
