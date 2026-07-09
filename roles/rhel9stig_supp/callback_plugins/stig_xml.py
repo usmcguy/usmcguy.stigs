@@ -58,7 +58,7 @@ class CallbackModule(CallbackBase):
 
     def _get_rev(self, nid):
         with open(self.stig_path, "r") as f:
-            r = "SV-{}r(?P<rev>\d+)_rule".format(nid)
+            r = r"SV-{}r(?P<rev>\d+)_rule".format(nid)
             m = re.search(r, f.read())
         if m:
             rev = m.group("rev")
@@ -68,14 +68,14 @@ class CallbackModule(CallbackBase):
 
     def v2_runner_on_ok(self, result):
         name = result._task.get_name()
-        m = re.search("stigrule_(?P<id>\d+)", name)
+        m = re.search(r"stigrule_(?P<id>\d+)", name)
         if m:
             nid = m.group("id")
         else:
             return
         rev = self._get_rev(nid)
         key = "{}r{}".format(nid, rev)
-        if self.rules.get(key, "Unknown") != False:
+        if self.rules.get(key, "Unknown") is not False:
             self.rules[key] = result.is_changed()
 
     def v2_playbook_on_stats(self, stats):
