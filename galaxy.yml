@@ -1,15 +1,23 @@
-namespace: "usmcguy"
-name: "stigs"
-version: "1.0.0"
-readme: "README.md"
-description: Ansible Supplemental STIG Roles
+namespace: usmcguy
+name: stigs
+version: 1.0.1
+readme: README.md
 authors:
-    - "Dave King (https://github.com/usmcguy)"
-    - "Glenn Mora Rangel (https://github.com/glennmora)"
-# dependencies: []
+  - Dave King (https://github.com/usmcguy)
+  - Glenn Mora Rangel (https://github.com/glennmora)
+description: Ansible Supplemental STIG Roles
 license:
-    - "Apache-2.0"
+  - Apache-2.0
 tags:
-    - infrastructure
-    - linux
+  - hardening
+  - infrastructure
+  - linux
+  - security
+  - stigs
+dependencies:
+  "ansible.posix": ">=1.6.0"
+  "community.postgresql": ">=3.0.0"
+  "containers.podman": ">=1.14.0"
+  "community.general": ">=10.7.0"
+  "kubernetes.core": ">=3.0.0"
 repository: "https://github.com/usmcguy/usmcguy.stigs"
