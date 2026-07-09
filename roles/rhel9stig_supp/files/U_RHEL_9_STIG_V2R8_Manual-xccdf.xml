@@ -4262,7 +4262,7 @@ drwxr-x--- 2 disauser admin 4096 Jun 5 12:41 disauser
 
 Check the user's primary group with the following command:
 
-$ sudo grep $(grep disauser /etc/passwd | awk -F: ‘{print $4}') /etc/group
+$ sudo grep $(grep disauser /etc/passwd | awk -F: '{print $4}') /etc/group
 
 admin:x:250:disauser,doduser,nsauser
 
