@@ -1,4 +1,4 @@
-rhel8stig_supp
+# usmcguy.rhel8stig_supp
 ===============
 
 A supplemental Ansible role for applying selected RHEL 8 STIG rules and configurations.
