@@ -2657,10 +2657,6 @@
     - rhel8STIG_stigrule_230373_Manage
     - inactive_check.stdout_lines | length == 0
 
-- name: DEBUG
-  debug:
-    var: current_inactive
-
 - name: stigrule_230373__set_INACTIVE_value
   ansible.builtin.command:
     cmd: useradd -D -f {{ rhel8STIG_stigrule_230373_inactive }}
