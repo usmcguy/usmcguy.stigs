@@ -394,7 +394,6 @@
       {{
         shadow_entries.stdout_lines
         | map('split', ':')
-        | rejectattr('0', 'in', rhel8STIG_stigrule_230232_protected_accts | default([]))
         | rejectattr('0', 'in', rhel8STIG_stigrule_230232_exempt_users | default([]))
         | rejectattr('1', 'match', '^[!*]')
         | rejectattr('1', 'match', '^\$6\$')
@@ -2656,10 +2655,6 @@
   when:
     - rhel8STIG_stigrule_230373_Manage
     - inactive_check.stdout_lines | length == 0
-
-- name: DEBUG
-  debug:
-    var: current_inactive
 
 - name: stigrule_230373__set_INACTIVE_value
   ansible.builtin.command:

@@ -37,8 +37,7 @@ rhel8STIG_stigrule_230223_Manage: true
 rhel8STIG_stigrule_230229_Manage: true
 # V-230232
 rhel8STIG_stigrule_230232_Manage: true
-rhel8STIG_stigrule_230232_exempt_users: []
-rhel8STIG_stigrule_230232_protected_accts:
+rhel8STIG_stigrule_230232_exempt_users:
   - root
   - sync
   - halt
