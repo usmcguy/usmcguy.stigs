@@ -1373,7 +1373,7 @@
 
 - name: Set partition option 'nodev' for non-root local partitions
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: "{{ item }}"
     stig_rule_id: 230301
@@ -1441,7 +1441,7 @@
 
 - name: Set partition option 'nodev' for removable partitions
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: "{{ item }}"
     stig_rule_id: 230303
@@ -1454,7 +1454,7 @@
 # V-230304 RHEL-08-010610
 - name: Set partition option 'noexec' for removable partitions
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: artition_option.yml
   vars:
     disk_partition: "{{ item }}"
     stig_rule_id: 230304
@@ -1467,7 +1467,7 @@
 # V-230305 RHEL-08-010620
 - name: Set partition option 'nosuid' for removable partitions
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: "{{ item }}"
     stig_rule_id: 230305
@@ -1490,7 +1490,7 @@
 
 - name: Set partition option 'noexec' for NFS mounts
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: "{{ item }}"
     stig_rule_id: 230306
@@ -1504,7 +1504,7 @@
 # V-230307 RHEL-08-010640
 - name: Set partition option 'nodev' for NFS mounts
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: "{{ item }}"
     stig_rule_id: 230307
@@ -1517,7 +1517,7 @@
 # V-230308 RHEL-08-010650
 - name: Set partition option 'nosuid' for NFS mounts
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: "{{ item }}"
     stig_rule_id: 230308
@@ -3684,7 +3684,7 @@
 # V-230508 RHEL-08-040120
 - name: Set partition option 'nodev' for /dev/shm
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /dev/shm
     stig_rule_id: 230508
@@ -3694,7 +3694,7 @@
 # V-230509 RHEL-08-040121
 - name: Set partition option 'nosuid' for /dev/shm
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /dev/shm
     stig_rule_id: 230509
@@ -3704,7 +3704,7 @@
 # V-230510 RHEL-08-040122
 - name: Set partition option 'noexec' for /dev/shm
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /dev/shm
     stig_rule_id: 230510
@@ -3714,7 +3714,7 @@
 # V-230511 RHEL-08-040123
 - name: Set partition option 'nodev' for /tmp
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /tmp
     stig_rule_id: 230511
@@ -3724,7 +3724,7 @@
 # V-230512 RHEL-08-040124
 - name: Set partition option 'nosuid' for /tmp
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /tmp
     stig_rule_id: 230512
@@ -3734,7 +3734,7 @@
 # V-230513
 - name: Set partition option 'noexec' for /tmp
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /tmp
     stig_rule_id: 230513
@@ -3744,7 +3744,7 @@
 # V-230514 RHEL-08-040126
 - name: Set partition option 'nodev' for /var/log
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/log
     stig_rule_id: 230514
@@ -3754,7 +3754,7 @@
 # V-230515 RHEL-08-040127
 - name: Set partition option 'nosuid' for /var/log
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/log
     stig_rule_id: 230515
@@ -3764,7 +3764,7 @@
 # V-230516 RHEL-08-040128
 - name: Set partition option 'noexec' for /var/log
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/log
     stig_rule_id: 230516
@@ -3774,7 +3774,7 @@
 # V-230517 RHEL-08-040129
 - name: Set partition option 'nodev' for /var/log/audit
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/log/audit
     stig_rule_id: 230517
@@ -3784,7 +3784,7 @@
 # V-230518 RHEL-08-040130
 - name: Set partition option 'nosuid' for /var/log/audit
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/log/audit
     stig_rule_id: 230518
@@ -3794,7 +3794,7 @@
 # V-230519 RHEL-08-040131
 - name: Set partition option 'noexec' for /var/log/audit
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/log/audit
     stig_rule_id: 230519
@@ -3804,7 +3804,7 @@
 # V-230520 RHEL-08-040132
 - name: Set partition option 'nodev' for /var/tmp
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/tmp
     stig_rule_id: 230520
@@ -3814,7 +3814,7 @@
 # V-230521 RHEL-08-040133
 - name: Set partition option 'nosuid' for /var/tmp
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/tmp
     stig_rule_id: 230521
@@ -3824,7 +3824,7 @@
 # V-230522 RHEL-08-040134
 - name: Set partition option 'noexec' for /var/tmp
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/tmp
     stig_rule_id: 230522
@@ -4413,7 +4413,7 @@
 # V-244529 RHEL-08-010544
 - name: Check if /var/tmp on seperate partition
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /var/tmp
     stig_rule_id: 244529
@@ -4422,7 +4422,7 @@
 # V-244530 RHEL-08-010572
 - name: Set partition option 'nosuid' for /boot/efi
   ansible.builtin.include_tasks:
-    file: roles/rhel8STIG_supp/tasks/partition_option.yml
+    file: partition_option.yml
   vars:
     disk_partition: /boot/efi
     stig_rule_id: 244530
@@ -4714,6 +4714,36 @@
     force: true
   when: rhel8STIG_stigrule_244546_Manage
   register: copy_fapolicyd_rules
+
+- name: stigrule_244546__copy_fapolicyd_deny_all_rule
+  ansible.builtin.template:
+    src: fapolicyd/99-deny-all.rules.j2
+    dest: /etc/fapolicyd/rules.d/99-deny-all.rules
+    mode: '0644'
+    owner: root
+    group: fapolicyd
+    force: true
+  when: rhel8STIG_stigrule_244546_Manage
+  register: copy_fapolicyd_rules
+
+- name: Find fapolicyd .rules files
+  ansible.builtin.find:
+    path: /etc/fapolicyd/rules.d
+    patterns: '*.rules'
+    recurse: false
+    file_type: file
+  register: fapolicyd_rule_files
+  when: rhel8STIG_stigrule_244546_Manage
+
+- name: stigrule_244546__comment_insecure_fapolicyd_rule
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^(?!\s*#)\s*allow\s+perm=open\s+all\s*:\s*all\s*$'
+    replace: '# \0'
+  loop: "{{ fapolicyd_rule_files.files }}"
+  when:
+    - rhel8STIG_stigrule_244546_Manage
+    - fapolicyd_rule_files.matched > 0
 
 - name: stigrule_244546__fapolicyd_permissive
   community.general.ini_file:
