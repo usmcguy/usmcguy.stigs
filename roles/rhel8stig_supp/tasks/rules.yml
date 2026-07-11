@@ -97,7 +97,7 @@
 
 - name: Deploy updated authselect profile templates
   ansible.builtin.template:
-    src: "{{ item }}.j2"
+    src: "sssd/{{ item }}.j2"
     dest: /usr/share/authselect/default/{{ rhel8STIG_stigrule_authselect_profile }}/{{ item }}
     owner: root
     group: root
