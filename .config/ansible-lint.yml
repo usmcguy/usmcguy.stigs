@@ -1,0 +1,44 @@
+# .ansible-lint
+offline: true
+profile: production # min, basic, moderate,safety, shared, production
+skip_list:
+  - yaml[line-length]
+  - var-naming[no-role-prefix]
+  - var-naming[pattern]
+  - name[casing]
+enable_list:
+  - avoid-implicit[copy-content]
+  - command-instead-of-module
+  - command-instead-of-shell
+  - deprecated-module
+  - empty-string-compare
+  - ignore-errors
+  - inline-env-var
+  - jinja
+  - jinja-template-extension
+  - key-order
+  - literal-compare
+  - meta-incorrect
+  - meta-no-tags
+  - meta-runtime
+  - name
+  - no-changed-when
+  - no-free-form
+  - no-handler
+  - no-jinja-when
+  - no-log-password
+  - no-prompting
+  - no-relative-paths
+  - no-same-owner
+  - no-tabs
+  - partial-become
+  - playbook-extension
+  - risky-file-permissions
+  - risky-octal
+  - risky-shell-pipe
+  - role-name
+  - run-once
+  - schema
+  - syntax-check
+  - var-naming
+  - yaml
