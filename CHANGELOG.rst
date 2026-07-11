@@ -4,14 +4,28 @@ usmcguy.stigs Release Notes
 
 .. contents:: Topics
 
+v1.0.3
+======
+
+Release Summary
+---------------
+
+
+- replace an update XCCDF xml from DISA in V2R8
+
+Minor Changes
+-------------
+
+- roles/rhel8stig_supp/files/U_RHEL_8_STIG_V2R8_Manual-xccdf.xml - replace previous xml with latest from DISA
+- roles/rhel8stig_supp/files/U_RHEL_8_STIG_V2R8_Manual-xccdf.xml - replace unicode with ASCII characters
+
 v1.0.2
 ======
 
 Release Summary
 ---------------
 
-- minor document updates
-- updated tasks to allign with DISA release V2R8
+ - minor document updates - updated tasks to allign with DISA release V2R8 
 
 Minor Changes
 -------------

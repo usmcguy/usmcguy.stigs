@@ -29,11 +29,24 @@ releases:
       - roles/rhel8stig_supp/tasks/rules.yml - updated V-244546 to allow deny option
         to follow with DISA release V2R8.
       - roles/rhel8stig_supp/templates - organize templates folder.
-      release_summary: '
-        - minor document updates
-        - updated tasks to allign with DISA release V2R8
-        '
+      release_summary: ' - minor document updates - updated tasks to allign with DISA
+        release V2R8 '
     fragments:
     - V2R8.yml
     - doc-updates.yml
+    release_date: '2026-07-11'
+  1.0.3:
+    changes:
+      minor_changes:
+      - roles/rhel8stig_supp/files/U_RHEL_8_STIG_V2R8_Manual-xccdf.xml - replace previous
+        xml with latest from DISA
+      - roles/rhel8stig_supp/files/U_RHEL_8_STIG_V2R8_Manual-xccdf.xml - replace unicode
+        with ASCII characters
+      release_summary: '
+
+        - replace an update XCCDF xml from DISA in V2R8
+
+        '
+    fragments:
+    - V2R8-XML.yml
     release_date: '2026-07-11'
