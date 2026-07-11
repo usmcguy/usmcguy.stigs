@@ -4,6 +4,25 @@ usmcguy.stigs Release Notes
 
 .. contents:: Topics
 
+v1.0.2
+======
+
+Release Summary
+---------------
+
+- minor document updates
+- updated tasks to allign with DISA release V2R8
+
+Minor Changes
+-------------
+
+- roles/rhel8stig_supp/README.md - removed whitespace from raw table
+- roles/rhel8stig_supp/tasks/rules.yml - removed leftover debug task
+- roles/rhel8stig_supp/tasks/rules.yml - removed unused variables
+- roles/rhel8stig_supp/tasks/rules.yml - updated V-230471 to comply with DISA release V2R8.
+- roles/rhel8stig_supp/tasks/rules.yml - updated V-244546 to allow deny option to follow with DISA release V2R8.
+- roles/rhel8stig_supp/templates - organize templates folder.
+
 v1.0.1
 ======
 
