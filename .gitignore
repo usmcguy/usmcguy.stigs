@@ -1,5 +1,5 @@
 .ansible/
-.config/
+#.config/
 roles/rhel8stig_supp/callback_plugins/__pycache__/
 roles/rhel9stig_supp/callback_plugins/__pycache__/
 test*
