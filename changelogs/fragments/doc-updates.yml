@@ -1,0 +1,4 @@
+minor_changes:
+  - roles/rhel8stig_supp/tasks/rules.yml - removed unused variables
+  - roles/rhel8stig_supp/tasks/rules.yml - removed leftover debug task
+  - roles/rhel8stig_supp/README.md - removed whitespace from raw table
