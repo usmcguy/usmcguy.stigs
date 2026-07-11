@@ -479,6 +479,7 @@ rhel8STIG_stigrule_244541_Manage: true
 rhel8STIG_stigrule_244545_Manage: true
 # V-244546
 rhel8STIG_stigrule_244546_Manage: true
+rhel8STIG_stigrule_244546_deny_option: deny_log
 # V-244547
 rhel8STIG_stigrule_244547_Manage: true
 # V-244548

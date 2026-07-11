@@ -1,0 +1,4 @@
+minor_updates:
+  - roles/rhel8stig_supp/tasks/rules.yml - updated V-230471 to comply with DISA release V2R8.
+  - roles/rhel8stig_supp/templates - organize templates folder.
+  - roles/rhel8stig_supp/tasks/rules.yml - updated V-244546 to allow deny option to follow with DISA release V2R8.
