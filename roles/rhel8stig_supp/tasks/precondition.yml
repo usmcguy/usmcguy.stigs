@@ -13,7 +13,7 @@
     that:
       - ansible_python_version is  version(minimum_python_version, '>=')
     fail_msg: |
-      "Python version is {{ ansible_python_version }}. It must be {{ minimum_python_version }} or greater!"
+      "Controller Python version is {{ ansible_python_version }}. It must be {{ minimum_python_version }} or greater!"
   delegate_to: localhost
 
 - name: Check if rhel8STIG_stigrule_230316_nameservers is defined properly
