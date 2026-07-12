@@ -1060,7 +1060,6 @@
     - rhel8STIG_stigrule_230274_Manage
     - parsed_sssd is defined
     - item.0.file != "/etc/sssd/sssd.conf"
-  diff: true
 
 - name: stigrule_230274__ensure_certificate_verification
   community.general.ini_file:
@@ -1076,7 +1075,6 @@
     mode: '0600'
   when:
     - rhel8STIG_stigrule_230274_Manage
-  diff: true
 
 # V-230277 RHEL-08-010421
 - name: Check grub2-editenv for page_poison
