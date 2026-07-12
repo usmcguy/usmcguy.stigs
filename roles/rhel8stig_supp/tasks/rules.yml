@@ -4735,6 +4735,16 @@
   register: fapolicyd_rule_files
   when: rhel8STIG_stigrule_244546_Manage
 
+- name: stigrule_244546__disable_rhel_default_95-allow-open_rule
+  ansible.builtin.command:
+    cmd: mv "{{ item.path }}" "{{ item.path }}.disabled"
+  args:
+    creates: /etc/fapolicyd/95-allow-open.rules.disabled
+    removes: /etc/fapolicyd/95-allow-open.rules
+  when:
+    - rhel8STIG_stigrule_244546_Manage
+    - item.path | regex_search('/95-allow-open\.rules$')
+
 - name: stigrule_244546__comment_insecure_fapolicyd_rule
   ansible.builtin.replace:
     path: "{{ item.path }}"
