@@ -1,3 +1,4 @@
 bugfixes:
   - roles/rhel8stig_supp/tasks/rules.yml - fixed bad path on partition_option.yml.
   - roles/rhel8stig_supp/tasks/rules.yml - rename insecure default fapolicy rule file.
+  - callback_plugins/stig_xml.py - callback plugin moved to correct path.
