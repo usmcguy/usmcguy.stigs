@@ -2,3 +2,7 @@ bugfixes:
   - roles/rhel8stig_supp/tasks/rules.yml - fixed bad path on partition_option.yml.
   - roles/rhel8stig_supp/tasks/rules.yml - rename insecure default fapolicy rule file.
   - callback_plugins/stig_xml.py - callback plugin moved to correct path.
+
+minor_changes:
+  - roles/rhel8stig_supp/ - removed RHEL 9 structure to limit collection for RHEL 8.
+  - README.md - updated to describe the updated plan for the collection.
