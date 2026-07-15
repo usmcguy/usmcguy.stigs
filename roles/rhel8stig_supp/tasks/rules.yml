@@ -421,10 +421,38 @@
     - rhel8STIG_stigrule_230232_Manage
     - non_sha512_users | length != 0
 
-- name: Install python3-pexpect for ansible.builtin.expect
-  ansible.builtin.package:
-    name: python3-pexpect
+- name: Check if pexpect is available on controller
+  ansible.builtin.command: python3 -m pexpect --version
+  register: pexpect_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+
+- name: Check if pip3 is available on controller
+  ansible.builtin.command: python3 -m pip --version
+  register: pip_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  when: pexpect_check.rc != 0
+
+- name: Install pip using ensurepip (no sudo required) on controller
+  ansible.builtin.command: python3 -m ensurepip --user
+  register: pip_install
+  changed_when: pip_install.rc == 0
+  delegate_to: localhost
+  when:
+    - pexpect_check.rc != 0
+    - pip_check.rc != 0
+
+- name: Install pexpect python package for ansible.builtin.expect on controller
+  ansible.builtin.pip:
+    name: pexpect
     state: present
+  delegate_to: localhost
+  when:
+    - pexpect_check.rc != 0
+    - pip_check.rc != 0
 
 # V-230234
 - name: Check if /boot/efi/EFI/redhat/user.cfg present
@@ -4735,13 +4763,16 @@
 
 - name: stigrule_244546__disable_rhel_default_95-allow-open_rule
   ansible.builtin.command:
-    cmd: mv "{{ item.path }}" "{{ item.path }}.disabled"
+    cmd: mv /etc/fapolicyd/95-allow-open.rules /etc/fapolicyd/95-allow-open.rules.disabled
   args:
     creates: /etc/fapolicyd/95-allow-open.rules.disabled
     removes: /etc/fapolicyd/95-allow-open.rules
   when:
     - rhel8STIG_stigrule_244546_Manage
-    - item.path | regex_search('/95-allow-open\.rules$')
+    - (fapolicyd_rule_files.files
+     | selectattr('path', 'equalto', '/etc/fapolicyd/95-allow-open.rules')
+     | list
+     | length) > 0
 
 - name: stigrule_244546__comment_insecure_fapolicyd_rule
   ansible.builtin.replace:
@@ -4752,6 +4783,7 @@
   when:
     - rhel8STIG_stigrule_244546_Manage
     - fapolicyd_rule_files.matched > 0
+    - item.path != "/etc/fapolicyd/95-allow-open.rules"
 
 - name: stigrule_244546__fapolicyd_permissive
   community.general.ini_file:
