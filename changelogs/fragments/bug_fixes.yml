@@ -7,3 +7,5 @@ minor_changes:
   - roles/rhel8stig_supp/ - removed RHEL 9 structure to limit collection for RHEL 8.
   - README.md - updated to describe the updated plan for the collection.
   - roles/rhel8stig_supp/tasks/precondition.yml - updated to clarify for controller.
+  - roles/rhel8stig_supp/tasks/rules.yml - switch to python package for pexpect.
+  - callback_plugins/stig_xml_new.py - new callback plugin to support collection folder structure.
