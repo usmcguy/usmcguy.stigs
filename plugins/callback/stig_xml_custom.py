@@ -95,7 +95,6 @@ class CallbackModule(CallbackBase):
     def _ensure_stig_path(self, task=None):
         if self.stig_path is None:
             self.stig_path = self._get_STIG_path(task)
-            #self._display.display("Using STIG_PATH: {}".format(self.stig_path))
         return self.stig_path
 
     def _init_tree(self):
