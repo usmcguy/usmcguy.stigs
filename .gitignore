@@ -1,6 +1,6 @@
 .ansible/
-#.config/
-callback_plugins/__pycache__/
+.config/
+plugins/callback/__pycache__/
 test*
 *.log
 AGENTS.md
