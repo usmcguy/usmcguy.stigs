@@ -1,0 +1,27 @@
+# Global vars
+rhel9stig_allow_system_reboot: true
+rhel9stig_stigrule_audit_tool_bins:
+  - /usr/sbin/auditctl
+  - /usr/sbin/auditd
+  - /usr/sbin/ausearch
+  - /usr/sbin/aureport
+  - /usr/sbin/autrace
+  - /usr/sbin/rsyslogd
+  - /usr/sbin/augenrules
+rhel9stig_stigrule_authselect_features:
+  - with-faillock
+  - with-files-access-provider
+  - with-files-domain
+  - with-mkhomedir
+  - with-smartcard
+  - with-smartcard-lock-on-removal
+  - with-sudo
+  - without-nullok
+rhel9stig_stigrule_authselect_force: true
+rhel9stig_stigrule_authselect_profile: sssd
+rhel9stig_stigrule_authselect_dir: /var/log/faillock
+rhel9stig_stigrule_logon_DenyAttempts: 3
+rhel9stig_stigrule_login_FailInterval: 900
+rhel9stig_stigrule_login_UnlockTime: 0
+rhel9stig_stigrule_sssd_domain: fully.qualified.domain.name
+rhel9stig_stigrule_sssd_id_provider: files
