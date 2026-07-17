@@ -1,6 +1,6 @@
 namespace: usmcguy
 name: stigs
-version: 1.0.3
+version: 1.0.4
 readme: README.md
 authors:
   - Dave King (https://github.com/usmcguy)
