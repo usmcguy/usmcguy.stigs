@@ -25,3 +25,6 @@ rhel9stig_stigrule_login_FailInterval: 900
 rhel9stig_stigrule_login_UnlockTime: 0
 rhel9stig_stigrule_sssd_domain: fully.qualified.domain.name
 rhel9stig_stigrule_sssd_id_provider: files
+# R-257778 RHEL-09-211015
+rhel9stig_stigrule_257778_Manage: true
+rhel9stig_stigrule_257778__dnf_State: latest

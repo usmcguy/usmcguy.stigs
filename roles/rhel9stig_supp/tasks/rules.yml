@@ -98,7 +98,7 @@
 - name: Deploy updated authselect profile templates
   ansible.builtin.template:
     src: "sssd/{{ item }}.j2"
-    dest: /usr/share/authselect/default/{{ rhel8STIG_stigrule_authselect_profile }}/{{ item }}
+    dest: /usr/share/authselect/default/{{ rhel9stig_stigrule_authselect_profile }}/{{ item }}
     owner: root
     group: root
     mode: '0644'
@@ -106,3 +106,18 @@
     - password-auth
     - smartcard-auth
     - system-auth
+
+# R-257778 RHEL-09-211015
+- name: stigrule_257778__dnf_update
+  ansible.builtin.dnf:
+    name: '*'
+    state: "{{ rhel9stig_stigrule_257778__dnf_State }}"
+    update_cache: true
+    skip_broken: true
+    lock_timeout: 60
+    update_only: true
+  when: rhel9stig_stigrule_257778_Manage
+  register: dnf_result
+  retries: 10
+  delay: 30
+  until: dnf_result is succeeded
