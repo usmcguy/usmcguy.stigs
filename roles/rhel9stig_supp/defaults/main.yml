@@ -28,3 +28,6 @@ rhel9stig_stigrule_sssd_id_provider: files
 # R-257778 RHEL-09-211015
 rhel9stig_stigrule_257778_Manage: true
 rhel9stig_stigrule_257778__dnf_State: latest
+# R-257781 RHEL-09-211030
+rhel9stig_stigrule_251718_Manage: true
+rhel9stig_stigrule_251718_target: 'multi-user.target'
