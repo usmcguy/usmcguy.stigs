@@ -3,7 +3,11 @@ objects:
 plugins:
   become: {}
   cache: {}
-  callback: {}
+  callback:
+    stig_xml_custom:
+      description: Generate STIG results xml
+      name: stig_xml_custom
+      version_added: null
   cliconf: {}
   connection: {}
   filter: {}
@@ -16,4 +20,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 1.0.3
+version: 1.0.4

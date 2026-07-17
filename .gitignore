@@ -1,7 +1,6 @@
 .ansible/
-#.config/
-roles/rhel8stig_supp/callback_plugins/__pycache__/
-roles/rhel9stig_supp/callback_plugins/__pycache__/
+.config/
+plugins/callback/__pycache__/
 test*
 *.log
 AGENTS.md
@@ -14,4 +13,3 @@ ansible.cfg
 id_rsa*
 inventory*
 site.yml
-enforce.sh

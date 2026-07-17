@@ -4,6 +4,22 @@ usmcguy.stigs Release Notes
 
 .. contents:: Topics
 
+v1.0.4
+======
+
+Minor Changes
+-------------
+
+- plugins/callback/stig_xml_custom.py - new callback plugin to support collection folder structure.
+- roles/rhel8stig_supp/tasks/precondition.yml - updated to clarify for controller.
+- roles/rhel8stig_supp/tasks/rules.yml - switch to python package for pexpect.
+
+Bugfixes
+--------
+
+- roles/rhel8stig_supp/tasks/rules.yml - fixed bad path on partition_option.yml.
+- roles/rhel8stig_supp/tasks/rules.yml - rename insecure default fapolicy rule file.
+
 v1.0.3
 ======
 
