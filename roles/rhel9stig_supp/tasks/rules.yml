@@ -1,3 +1,6 @@
+- name: populate package facts
+  package_facts:
+
 - name: Check for EFI directory
   ansible.builtin.stat:
     path: /sys/firmware/efi
@@ -127,16 +130,33 @@
   ansible.builtin.command: systemctl get-default
   register: current_system_target
   changed_when: false
-  when: rhel9stig_stigrule_251718_Manage
+  when: rhel9stig_stigrule_257781_Manage
 
 - name: stigrule_257781__set_system_default_target
-  ansible.builtin.command: systemctl set-default {{ rhel9stig_stigrule_251718_target }}
-  when:
-    - rhel9stig_stigrule_257781_Manage
-    - current_system_target.stdout != rhel9stig_stigrule_251718_target
+  ansible.builtin.command: systemctl set-default {{ rhel9stig_stigrule_257781_target }}
   notify: reboot
   register: new_system_target
   changed_when: new_system_target.rc == 0
+  when:
+    - rhel9stig_stigrule_257781_Manage
+    - current_system_target.stdout != rhel9stig_stigrule_257781_target
 
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
+
+# R-257782 RHEL-09-211035
+- name: stigrule_257782_ensure_rng-tools_installed
+  ansible.builtin.package:
+    name: rng-tools
+    state: present
+  when:
+    - rhel9stig_stigrule_257782_Manage
+    - not 'rng-tools' in ansible_facts.packages
+
+- name: stigrule_257782_ensure_rngd_enabled
+  ansible.builtin.service:
+    name: rngd
+    state: started
+    enabled: true
+  when:
+    - rhel9stig_stigrule_257782_Manage
