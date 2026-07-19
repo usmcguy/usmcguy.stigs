@@ -160,3 +160,28 @@
     enabled: true
   when:
     - rhel9stig_stigrule_257782_Manage
+
+# R-257787 RHEL-09-212010
+- name: Check for BIOS grub2_password
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep -iw grub2_password /boot/grub2/user.cfg || true
+  register: grub_pass_check_bios
+  changed_when: false
+  no_log: true
+  when:
+    - rhel8STIG_stigrule_257787_Manage
+    - boot_mode == "BIOS"
+
+- name: stigrule_257787__grub2-setpassword_BIOS
+  ansible.builtin.expect:
+    command: grub2-setpassword
+    responses:
+      (?i)Password: "{{ rhel8STIG_stigrule_257787_grub_password }}"
+      (?i)Confirm password: "{{ rhel8STIG_stigrule_257787_grub_password }}"
+  no_log: true
+  when:
+    - rhel8STIG_stigrule_257787_Manage
+    - boot_mode == "BIOS"
+    - grub_pass_check_bios.stdout | length == 0
