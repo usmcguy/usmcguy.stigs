@@ -185,3 +185,48 @@
     - rhel8STIG_stigrule_257787_Manage
     - boot_mode == "BIOS"
     - grub_pass_check_bios.stdout | length == 0
+
+# R-257788 RHEL-09-212015
+- name: Check grub2-editenv for confirm_spawn
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grub2-editenv list | grep -E 'confirm_spawn(=|[[:space:]])' || true
+    executable: /bin/bash
+  register: grub2_spawn_check
+  changed_when: false
+  when:
+    - rhel8STIG_stigrule_257788_Manage
+
+- name: Check /etc/default/grub for confirm_spawn
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep -E 'confirm_spawn(=|[[:space:]])' /etc/default/grub || true
+  register: grub_spawn_check
+  changed_when: false
+  when:
+    - rhel8STIG_stigrule_257788_Manage
+
+- name: stigrule_257788__grub_remove_confirm_spawn
+  ansible.builtin.replace:
+    path: /etc/default/grub
+    regexp: '(^GRUB_CMDLINE_LINUX="[^"]*)\s*systemd\.confirm_spawn=true\s*([^"]*")'
+    replace: '\1 \2'
+  when:
+    - rhel8STIG_stigrule_257788_Manage
+    - grub_spawn_check.stdout | length > 0
+  notify: grub2_update
+
+
+- name: stigrule_257788__grubby_remove_confirm_spawn
+  ansible.builtin.command: "grubby --update-kernel=ALL --remove-args='systemd.confirm_spawn'"
+  register: spawn_result
+  changed_when: spawn_result.rc == 0
+  notify: grub2_update
+  when:
+    - rhel8STIG_stigrule_257788_Manage
+    - "'confirm_spawn' in grub2_spawn_check.stdout"
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
