@@ -35,9 +35,9 @@ rhel9stig_stigrule_257781_target: 'multi-user.target'
 rhel9stig_stigrule_257782_Manage: true
 # R-257787 RHEL-09-212010
 rhel9stig_stigrule_257787_Manage: true
-rhel8STIG_stigrule_257787_grub_password: ChangeMe_!@12#$34
+rhel9stig_stigrule_257787_grub_password: ChangeMe_!@12#$34
 # R-257788 RHEL-09-212015
 rhel9stig_stigrule_257788_Manage: true
 # R-257789 RHEL-09-212020
-rhel8STIG_stigrule_257789_Manage: true
-rhel8STIG_stigrule_257789_unique_name: grub_root
+rhel9stig_stigrule_257789_Manage: true
+rhel9stig_stigrule_257789_unique_name: grub_root
