@@ -682,3 +682,93 @@
   when:
     - rhel9stig_stigrule_257819_Manage
     - repo_rpm_copy.changed
+
+# R-257822 RHEL-09-214025
+- name: stigrule_257822__stat_conf_files
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    get_checksum: false
+    get_mime: false
+  loop:
+    - /etc/yum.conf
+    - /etc/dnf/dnf.conf
+  register: main_conf_stats
+  when: rhel9stig_stigrule_257822_Manage
+
+- name: stigrule_257822__gpgcheck_main_conf_files
+  community.general.ini_file:
+    path: "{{ item.item }}"
+    section: main
+    option: gpgcheck
+    value: 1
+    ignore_spaces: true
+    exclusive: true
+    follow: true
+    mode: '0644'
+    owner: root
+    group: root
+  loop: "{{ main_conf_stats.results }}"
+  when:
+    - rhel9stig_stigrule_257822_Manage
+    - item.stat.exists
+
+- name: Find repo files
+  ansible.builtin.find:
+    paths: /etc/yum.repos.d
+    patterns: "*.repo"
+    file_type: file
+  register: repo_files
+  when: rhel9stig_stigrule_257822_Manage
+
+- name: Read repo files
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ repo_files.files }}"
+  register: repo_file_contents
+  no_log: true
+  when:
+    - rhel9stig_stigrule_257822_Manage
+
+- name: Define regex filter for repo names
+  ansible.builtin.set_fact:
+    repo_section_regex: "\\[([^\\]]+?)\\]"
+  when:
+    - rhel9stig_stigrule_257822_Manage
+
+- name: Build repo section map
+  ansible.builtin.set_fact:
+    repo_sections: >-
+      {{
+        repo_sections | default([]) +
+        [
+          {
+            'path': item.source,
+            'sections': (
+              item.content
+              | b64decode
+              | regex_findall(repo_section_regex)
+            )
+          }
+        ]
+      }}
+  loop: "{{ repo_file_contents.results }}"
+  no_log: true
+  when:
+    - rhel9stig_stigrule_257822_Manage
+
+- name: stigrule_257822_set_gpgcheck
+  community.general.ini_file:
+    path: "{{ item.0.path }}"
+    section: "{{ item.1 }}"
+    option: gpgcheck
+    value: "{{ rhel9stig_stigrule_257822_gpgcheck }}"
+    no_extra_spaces: false
+    ignore_spaces: true
+    create: false
+  loop: "{{ (repo_sections | default([])) | subelements('sections') }}"
+  loop_control:
+    label: "{{ item.0.path }} :: {{ item.1 }}"
+  no_log: true
+  when:
+    - rhel9stig_stigrule_257822_Manage
+    - repo_sections is defined

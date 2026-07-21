@@ -61,3 +61,5 @@ rhel9stig_stigrule_257819_key_fingerprints:
   - name: Red Hat Auxiliary Key 3
     fingerprint: 7E46 2425 8C40 6535 D56D  6F13 5054 E4A4 5A63 40B3
 rhel9stig_stigrule_257819_src_key_path: roles/rhel9stig_supp/files/RPM-GPG-KEY-redhat-release
+# R-257822 RHEL-09-214025
+rhel9stig_stigrule_257822_Manage: true
