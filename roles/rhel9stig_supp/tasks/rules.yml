@@ -617,3 +617,68 @@
 
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
+
+# R-257819 RHEL-09-214010
+- name: Get local RPM GPG key fingerprints
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      gpg -q --keyid-format short --with-fingerprint /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release || true
+  register: rpm_gpg_fingerprint
+  changed_when: false
+  when:
+    - rhel9stig_stigrule_257819_Manage
+
+- name: stigrule_257817_verify_required_local_fingerprints_present
+  ansible.builtin.assert:
+    that:
+      - item.fingerprint in rpm_gpg_fingerprint.stdout
+    fail_msg: "Fingerprint '{{ item.name }}' not found in key output"
+    success_msg: "'{{ item.name }}' fingerprint verified"
+  loop: "{{ rhel9stig_stigrule_257819_key_fingerprints }}"
+  ignore_errors: true
+  register: local_print_check
+
+- name: Get repo RPM GPG key fingerprints
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      gpg -q --keyid-format short --with-fingerprint {{ rhel9stig_stigrule_257819_src_key_path }} || true
+  register: repo_rpm_gpg_fingerprint
+  changed_when: false
+  when:
+    - rhel9stig_stigrule_257819_Manage
+    - local_print_check.msg != "All items completed"
+  delegate_to: localhost
+
+- name: Verify required repository fingerprints present
+  ansible.builtin.assert:
+    that:
+      - item.fingerprint in repo_rpm_gpg_fingerprint.stdout
+    fail_msg: "Fingerprint '{{ item.name }}' not found in key output"
+    success_msg: "'{{ item.name }}' fingerprint verified"
+  loop: "{{ rhel9stig_stigrule_257819_key_fingerprints }}"
+  register: repo_print_check
+  when:
+    - rhel9stig_stigrule_257819_Manage
+    - repo_rpm_gpg_fingerprint.stdout is defined
+
+- name: stigrule_257819__copy_keys_from_repository
+  ansible.builtin.copy:
+    src: "{{ rhel9stig_stigrule_257819_src_key_path }}"
+    dest: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+    mode: '0644'
+    owner: root
+    group: root
+  register: repo_rpm_copy
+  when:
+    - rhel9stig_stigrule_257819_Manage
+    - repo_print_check.msg == "All items completed"
+
+- name: stigrule_257819__import_GPG_key
+  ansible.builtin.rpm_key:
+    state: present
+    key: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+  when:
+    - rhel9stig_stigrule_257819_Manage
+    - repo_rpm_copy.changed

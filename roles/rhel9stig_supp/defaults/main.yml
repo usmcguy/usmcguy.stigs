@@ -53,3 +53,11 @@ rhel9stig_stigrule_257795_Manage: true
 rhel9stig_stigrule_257796_Manage: true
 # R-257817 RHEL-09-213110
 rhel9stig_stigrule_257817_Manage: true
+# R-257819 RHEL-09-214010
+rhel9stig_stigrule_257819_Manage: true
+rhel9stig_stigrule_257819_key_fingerprints:
+  - name: Red Hat Release Key 2
+    fingerprint: 567E 347A D004 4ADE 55BA  8A5F 199E 2F91 FD43 1D51
+  - name: Red Hat Auxiliary Key 3
+    fingerprint: 7E46 2425 8C40 6535 D56D  6F13 5054 E4A4 5A63 40B3
+rhel9stig_stigrule_257819_src_key_path: roles/rhel9stig_supp/files/RPM-GPG-KEY-redhat-release
