@@ -49,3 +49,5 @@ rhel9stig_stigrule_257793_Manage: true
 rhel9stig_stigrule_257794_Manage: true
 # V-257795 RHEL-09-212050
 rhel9stig_stigrule_257795_Manage: true
+# V-257796 RHEL-09-212055
+rhel9stig_stigrule_257796_Manage: true
