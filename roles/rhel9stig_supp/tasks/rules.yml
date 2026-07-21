@@ -576,5 +576,44 @@
     - rhel9stig_stigrule_257796_Manage
     - "'audit=1' not in grub2_audit_check.stdout"
 
+# R-257817 RHEL-09-213110
+- name: Check cpu info for 'nx' flag
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep ^flags /proc/cpuinfo | grep -Ev '([^[:alnum:]])(nx)([^[:alnum:]]|$)' || true
+  register: nx_flag_check
+  changed_when: false
+  when:
+    - rhel9stig_stigrule_257817_Manage
+
+- name: Check grubby for noexec
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grubby --info=ALL | grep args | grep -E '([^[:alnum:]])(noexec)([^[:alnum:]])' || true
+  register: grubby_noexec_check
+  changed_when: false
+  when:
+    - rhel9stig_stigrule_257817_Manage
+
+- name: stigrule_257817_fail_on_absent_nx
+  ansible.builtin.fail:
+    msg: Could not find NX flag. Verify that the NX/XD feature is not disabled in the BIOS or UEFI. If it is disabled, enable it.
+  when:
+    - rhel9stig_stigrule_257817_Manage
+    - nx_flag_check.stdout | length > 0
+
+- name: stigrule_257817_remove_noexec_with_grubby
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grubby --update-kernel=ALL --remove-args=noexec
+  register: grubby_noexec_remove
+  changed_when: grubby_noexec_remove.rc == 0
+  when:
+    - rhel9stig_stigrule_257817_Manage
+    - grubby_noexec_check.stdout | length > 0
+
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
