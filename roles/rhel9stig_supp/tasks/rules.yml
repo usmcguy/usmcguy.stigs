@@ -422,3 +422,57 @@
   when:
     - rhel9stig_stigrule_257793_Manage
     - "'page_poison=1' not in grub2_poison_check.stdout"
+
+# V-257794 RHEL-09-212045
+- name: Check grub2-editenv for init_on_free
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grub2-editenv list | grep -E 'init_on_free(=|[[:space:]])' || true
+    executable: /bin/bash
+  register: grub2_init_check
+  changed_when: false
+  when:
+    - rhel9stig_stigrule_257794_Manage
+
+- name: Check /etc/default/grub for init_on_free
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep -E 'init_on_free(=|[[:space:]])' /etc/default/grub || true
+  register: grub_init_check
+  changed_when: false
+  when:
+    - rhel9stig_stigrule_257794_Manage
+
+- name: stigrule_257794__grub_add_init_on_free
+  ansible.builtin.replace:
+    path: /etc/default/grub
+    regexp: '^(GRUB_CMDLINE_LINUX=".*)"$'
+    replace: '\1 init_on_free=1"'
+  when:
+    - rhel9stig_stigrule_257794_Manage
+    - grub_init_check.stdout | length == 0
+  notify: grub2_update
+
+- name: stigrule_257794__grub_set_init_on_free
+  ansible.builtin.replace:
+    path: /etc/default/grub
+    regexp: '(init_on_free)(=|\s+)[^\s"]*'
+    replace: '\1=1'
+  when:
+    - rhel9stig_stigrule_257794_Manage
+    - grub_init_check.stdout | length > 0
+  notify: grub2_update
+
+- name: stigrule_257794__grubby_set_init_on_free
+  ansible.builtin.command: "grubby --update-kernel=ALL --args='init_on_free=1'"
+  register: init_result
+  changed_when: init_result.rc == 0
+  notify: grub2_update
+  when:
+    - rhel9stig_stigrule_257794_Manage
+    - "'init_on_free=1' not in grub2_init_check.stdout"
+
+- name: Run pending handlers
+  ansible.builtin.meta: flush_handlers
