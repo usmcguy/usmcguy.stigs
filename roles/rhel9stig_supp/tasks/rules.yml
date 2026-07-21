@@ -1,5 +1,5 @@
 - name: populate package facts
-  package_facts:
+  ansible.builtin.package_facts:
 
 - name: Check for EFI directory
   ansible.builtin.stat:
