@@ -808,3 +808,11 @@
   when:
     - rhel9stig_stigrule_257822_Manage
     - repo_sections is defined
+
+# R-257826 RHEL-09-215015
+- name: stigrule_257826_remove_vsftpd
+  ansible.builtin.package:
+    name: vsftpd
+    state: absent
+  when:
+    - rhel9stig_stigrule_257826_Manage
