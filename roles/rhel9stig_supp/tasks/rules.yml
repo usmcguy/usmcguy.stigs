@@ -230,3 +230,93 @@
 
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
+
+# R-257789 RHEL-09-212020
+- name: Ensure grub2-tools present
+  ansible.builtin.package:
+    name: grub2-tools
+    state: present
+  when:
+    - rhel8STIG_stigrule_257789_Manage
+
+- name: Get current superusers
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep 'set superusers=' /etc/grub.d/01_users | awk -F'"' '{print $2}' || true
+  register: current_superuser
+  changed_when: false
+  when:
+    - rhel8STIG_stigrule_257789_Manage
+
+- name: Check current password_pbkdf2 account name
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep 'password_pbkdf2' /etc/grub.d/01_users | awk -F' ' '{print $2}' || true
+  register: password_pbkdf2_user
+  changed_when: false
+  when:
+    - rhel8STIG_stigrule_257789_Manage
+
+- name: stigrule_257789__change_superuser_unique
+  ansible.builtin.lineinfile:
+    path: /etc/grub.d/01_users
+    regexp: '^(.*set superusers=)"[^"]*"'
+    line: '\1"{{ rhel8STIG_stigrule_257789_unique_name }}"'
+    backrefs: true
+  when:
+    - rhel8STIG_stigrule_257789_Manage
+    - >
+      current_superuser.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
+
+  register: uefi_superuser_updated
+
+- name: stigrule_257789__change_pbkdf2_to_unique
+  ansible.builtin.lineinfile:
+    path: /etc/grub.d/01_users
+    regexp: '^(.*password_pbkdf2 )\S+(\s+\S+)?$'
+    line: '\1"{{ rhel8STIG_stigrule_257789_unique_name }}"\2'
+    backrefs: true
+  register: uefi_password_pbkdf2
+  when:
+    - rhel8STIG_stigrule_257789_Manage
+    - >
+      password_pbkdf2_user.stdout_lines | intersect(
+        (
+          interactive_user_list | map(attribute='key') | list
+        ) + (
+          system_acct_list | map(attribute='key') | list
+        )
+      ) | length > 0
+
+- name: stigrule_257789__chown_01_users
+  ansible.builtin.file:
+    path: /etc/grub.d/01_users
+    owner: root
+    group: root
+    mode: '0755'
+  when:
+    - rhel8STIG_stigrule_257789_Manage
+
+- name: stigrule_257789__grub2_update_old
+  ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
+  register: grub_mkconfig
+  changed_when: grub_mkconfig.rc == 0
+  when:
+    - rhel8STIG_stigrule_257789_Manage
+    - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
+    - ansible_distribution_version is version('9.3', '<')
+
+- name: stigrule_257789__grub2_update_new
+  ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg --update-bls-cmdline
+  register: grub_mkconfig
+  changed_when: grub_mkconfig.rc == 0
+  when:
+    - rhel8STIG_stigrule_257789_Manage
+    - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
+    - ansible_distribution_version is version('9.3', '>=')
