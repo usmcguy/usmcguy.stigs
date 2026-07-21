@@ -41,3 +41,5 @@ rhel9stig_stigrule_257788_Manage: true
 # R-257789 RHEL-09-212020
 rhel9stig_stigrule_257789_Manage: true
 rhel9stig_stigrule_257789_unique_name: grub_root
+# V-257792 RHEL-09-212035
+rhel9stig_stigrule_257792_Manage: true

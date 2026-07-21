@@ -320,3 +320,53 @@
     - rhel9stig_stigrule_257789_Manage
     - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
     - ansible_distribution_version is version('9.3', '>=')
+
+# V-257792 RHEL-09-212035
+- name: Check grub2-editenv for vsyscall
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grub2-editenv list | grep -E 'vsyscall(=|[[:space:]])'
+    executable: /bin/bash
+  register: grub2_vsyscall_check
+  changed_when: false
+  failed_when: false
+  when:
+    - rhel9stig_stigrule_257792_Manage
+
+- name: Check /etc/default/grub for vsyscall
+  ansible.builtin.command: grep -E 'vsyscall(=|[[:space:]])' /etc/default/grub
+  register: grub_vsyscall_check
+  changed_when: false
+  failed_when: false
+  when:
+    - rhel9stig_stigrule_257792_Manage
+
+- name: stigrule_257792__grub_add_vsyscall
+  ansible.builtin.replace:
+    path: /etc/default/grub
+    regexp: '^(GRUB_CMDLINE_LINUX=".*)"$'
+    replace: '\1 vsyscall=none"'
+  when:
+    - rhel9stig_stigrule_257792_Manage
+    - grub_vsyscall_check.rc != 0
+  notify: grub2_update
+
+- name: stigrule_257792__grub_set_vsyscall
+  ansible.builtin.replace:
+    path: /etc/default/grub
+    regexp: '(vsyscall)(=|\s+)[^\s"]*'
+    replace: '\1=none'
+  when:
+    - rhel9stig_stigrule_257792_Manage
+    - grub_vsyscall_check.rc == 0
+  notify: grub2_update
+
+- name: stigrule_257792__grubby_set_vsyscall
+  ansible.builtin.command: "grubby --update-kernel=ALL --args='vsyscall=none'"
+  register: vsyscall_result
+  changed_when: vsyscall_result.rc == 0
+  notify: grub2_update
+  when:
+    - rhel9stig_stigrule_257792_Manage
+    - "'vsyscall=none' not in grub2_vsyscall_check.stdout"
