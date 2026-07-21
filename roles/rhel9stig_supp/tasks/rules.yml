@@ -637,7 +637,42 @@
     success_msg: "'{{ item.name }}' fingerprint verified"
   loop: "{{ rhel9stig_stigrule_257819_key_fingerprints }}"
   ignore_errors: true
-  register: local_print_check
+  register: fingerprint_check
+  when:
+    - rhel9stig_stigrule_257819_Manage
+    - rpm_gpg_fingerprint.stdout | length > 0
+
+- name: stigrule_257817_attempt_reinstall_redhat-release
+  ansible.builtin.command:
+    cmd: dnf reinstall -y redhat-release
+  register: release_reinstall_result
+  changed_when: "'Nothing to do' not in release_reinstall_result.stdout"
+  ignore_errors: true
+  when:
+    - rhel9stig_stigrule_257819_Manage
+    - fingerprint_check.msg != "All items completed"
+
+- name: Get fingperprints again after redhat-release reinstalled
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      gpg -q --keyid-format short --with-fingerprint /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release || true
+  register: validate_rpm_gpg_fingerprint
+  changed_when: false
+  when:
+    - rhel9stig_stigrule_257819_Manage
+    - release_reinstall_result.changed is defined
+    - release_reinstall_result.changed
+
+- name: stigrule_257817_validate_fingerprints_present
+  ansible.builtin.assert:
+    that:
+      - item.fingerprint in validate_rpm_gpg_fingerprint.stdout
+    fail_msg: "Fingerprint '{{ item.name }}' not found in key output"
+    success_msg: "'{{ item.name }}' fingerprint verified"
+  loop: "{{ rhel9stig_stigrule_257819_key_fingerprints }}"
+  ignore_errors: true
+  register: fingerprint_validate
 
 - name: Get repo RPM GPG key fingerprints
   ansible.builtin.shell:
@@ -648,7 +683,8 @@
   changed_when: false
   when:
     - rhel9stig_stigrule_257819_Manage
-    - local_print_check.msg != "All items completed"
+    - fingerprint_check.msg != "All items completed"
+    - fingerprint_validate.failed
   delegate_to: localhost
 
 - name: Verify required repository fingerprints present
