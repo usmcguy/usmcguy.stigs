@@ -1073,7 +1073,7 @@
   ansible.builtin.include_tasks:
     file: partition_option.yml
   vars:
-    disk_partition: "{{ item }}"
+    disk_partition: /boot
     stig_rule_id: 257860
     partition_option: nodev
   when:
@@ -1084,7 +1084,7 @@
   ansible.builtin.include_tasks:
     file: partition_option.yml
   vars:
-    disk_partition: "{{ item }}"
+    disk_partition: /boot
     stig_rule_id: 257861
     partition_option: nosuid
   when:
