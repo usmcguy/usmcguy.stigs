@@ -193,3 +193,14 @@ rhel9stig_stigrule_257918_bin_paths:
   - /usr/libexec
   - /usr/local/bin
   - /usr/local/sbin
+# R-257919 RHEL-09-232195
+rhel9stig_stigrule_257919_Manage: true
+rhel9stig_stigrule_257919_ignore_paths: []
+rhel9stig_stigrule_257919_bin_paths:
+  - /bin
+  - /sbin
+  - /usr/bin
+  - /usr/sbin
+  - /usr/libexec
+  - /usr/local/bin
+  - /usr/local/sbin

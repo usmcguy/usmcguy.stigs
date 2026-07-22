@@ -1500,3 +1500,36 @@
   register: chown_binary_cmds
   changed_when: chown_binary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257918_Manage
+
+# R-257919 RHEL-09-232195
+- name: Define excluded binary paths
+  ansible.builtin.set_fact:
+    exclude_binary_paths_chgrp: >-
+      {{ rhel9stig_stigrule_257919_ignore_paths
+        | map('regex_replace', '^(.*)$', "-path '\1'")
+        | join(' -o ')
+      }}
+  when: rhel9stig_stigrule_257919_Manage
+
+- name: Add prune argument for excluded binary paths
+  ansible.builtin.set_fact:
+    exclude_chgrp_binary_cmd: '\( {{ exclude_binary_paths_chgrp }} \) -prune -o'
+  when:
+    - rhel9stig_stigrule_257919_Manage
+    - exclude_binary_paths_chgrp is defined
+    - exclude_binary_paths_chgrp | length > 0
+
+- name: Set empty var when no binary paths excluded
+  ansible.builtin.set_fact:
+    exclude_chgrp_binary_cmd: ''
+  when:
+    - rhel9stig_stigrule_257919_Manage
+    - exclude_binary_paths_chgrp is not defined or exclude_binary_paths_chgrp | length == 0
+
+- name: stigrule_257919__chgrp_binary_files
+  ansible.builtin.shell: |
+    set -o pipefail
+    find -L {{ rhel9stig_stigrule_257919_bin_paths | join(' ') }} {{ exclude_chgrp_binary_cmd }} -type f ! -group root -exec ls -al {} + -exec chgrp root {} + || true
+  register: chgrp_binary_cmds
+  changed_when: chgrp_binary_cmds.stdout | length > 0
+  when: rhel9stig_stigrule_257919_Manage
