@@ -911,3 +911,12 @@
     stig_rule_id: 257847
     disk_partition: /var/log/audit
   when: rhel8STIG_stigrule_257847_Manage
+
+# R-257848 RHEL-09-231035
+- name: Validate partition for /var/log/audit
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 257848
+    disk_partition: /var/log/audit
+  when: rhel8STIG_stigrule_257848_Manage
