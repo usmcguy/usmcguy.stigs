@@ -1089,3 +1089,14 @@
     partition_option: nosuid
   when:
     - rhel9stig_stigrule_257861_Manage
+
+# R-257862 RHEL-09-231105
+- name: Validate nosuid partition option for /boot/efi
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: /boot/efi
+    stig_rule_id: 257862
+    partition_option: nosuid
+  when:
+    - rhel9stig_stigrule_257862_Manage
