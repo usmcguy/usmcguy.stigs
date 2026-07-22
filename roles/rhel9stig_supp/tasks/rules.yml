@@ -1329,7 +1329,7 @@
 - name: stigrule_257882__chmod_binary_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ item }} {{ exclude_chown_binary_cmd }} -type f  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod g-w,o-w {} + || true
+    find -L {{ item }} {{ exclude_chown_binary_cmd }} -type f  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
   register: chown_libary_cmds
   changed_when: chown_libary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257882_Manage
@@ -1371,7 +1371,7 @@
 - name: stigrule_257883__chmod_library_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ item }} {{ exclude_chown_library_cmd }} -type d  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod g-w,o-w {} + || true
+    find -L {{ item }} {{ exclude_chown_library_cmd }} -type d  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
   register: chown_libary_cmds
   changed_when: chown_libary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257883_Manage
