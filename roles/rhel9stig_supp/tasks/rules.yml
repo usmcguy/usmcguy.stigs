@@ -1381,3 +1381,81 @@
       - /lib64
       - /usr/lib
       - /usr/lib64
+
+# R-257883 RHEL-09-232015
+- name: Define excluded library file paths
+  ansible.builtin.set_fact:
+    exclude_library_paths: >-
+      {{ rhel9stig_stigrule_257883_ignore_paths
+        | map('regex_replace', '^(.*)$', "-path '\1'")
+        | join(' -o ')
+      }}
+  when: rhel9stig_stigrule_257883_Manage
+
+- name: Add prune argument for excluded library file paths
+  ansible.builtin.set_fact:
+    exclude_chown_library_cmd: '\( {{ exclude_library_paths }} \) -prune -o'
+  when:
+    - rhel9stig_stigrule_257883_Manage
+    - exclude_library_paths is defined
+    - exclude_library_paths | length > 0
+
+- name: Set empty var when no library paths excluded
+  ansible.builtin.set_fact:
+    exclude_chown_library_cmd: ''
+  when:
+    - rhel9stig_stigrule_257883_Manage
+    - exclude_library_paths is not defined or exclude_library_paths | length == 0
+
+- name: stigrule_257883__chmod_library_files
+  ansible.builtin.shell: |
+    set -o pipefail
+    find -L {{ item }} {{ exclude_chown_library_cmd }} -type d  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+  register: chown_libary_cmds
+  changed_when: chown_libary_cmds.stdout | length > 0
+  when: rhel9stig_stigrule_257883_Manage
+  vars:
+    library_paths:
+      - /lib
+      - /lib64
+      - /usr/lib
+      - /usr/lib64
+
+# R-257884 RHEL-09-232020
+- name: Define excluded library file paths
+  ansible.builtin.set_fact:
+    exclude_library_file_paths: >-
+      {{ rhel9stig_stigrule_257884_ignore_paths
+        | map('regex_replace', '^(.*)$', "-path '\1'")
+        | join(' -o ')
+      }}
+  when: rhel9stig_stigrule_257884_Manage
+
+- name: Add prune argument for excluded library paths
+  ansible.builtin.set_fact:
+    exclude_chown_library_file_cmd: '\( {{ exclude_library_file_paths }} \) -prune -o'
+  when:
+    - rhel9stig_stigrule_257884_Manage
+    - exclude_library_file_paths is defined
+    - exclude_library_file_paths | length > 0
+
+- name: Set empty var when no library paths excluded
+  ansible.builtin.set_fact:
+    exclude_chown_library_file_cmd: ''
+  when:
+    - rhel9stig_stigrule_257884_Manage
+    - exclude_library_file_paths is not defined or exclude_library_file_paths | length == 0
+
+- name: stigrule_257884__chmod_library_files
+  ansible.builtin.shell: |
+    set -o pipefail
+    find {{ item }} {{ exclude_chown_library_file_cmd }} -type f  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+  register: chown_libary_file_cmds
+  changed_when: chown_libary_file_cmds.stdout | length > 0
+  when: rhel9stig_stigrule_257884_Manage
+  vars:
+    library_paths:
+      - /lib
+      - /lib64
+      - /usr/lib
+      - /usr/lib64
