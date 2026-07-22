@@ -865,7 +865,7 @@
       - xorg-x11-server-Xvfb
       - xorg-x11-server-Xwayland
     state: absent
-  when: rhel8STIG_stigrule_257837_Manage
+  when: rhel9stig_stigrule_257837_Manage
 
 # R-257843 RHEL-09-231010
 - name: Validate partition for {{ default_home_path }}
@@ -874,7 +874,7 @@
   vars:
     stig_rule_id: 257843
     disk_partition: "{{ default_home_path }}"
-  when: rhel8STIG_stigrule_257843_Manage
+  when: rhel9stig_stigrule_257843_Manage
 
 # R-257844 RHEL-09-231015
 - name: Validate partition for /tmp
@@ -883,7 +883,7 @@
   vars:
     stig_rule_id: 257844
     disk_partition: /tmp
-  when: rhel8STIG_stigrule_257844_Manage
+  when: rhel9stig_stigrule_257844_Manage
 
 # R-257845 RHEL-09-231020
 - name: Validate partition for /var
@@ -892,7 +892,7 @@
   vars:
     stig_rule_id: 257845
     disk_partition: /var
-  when: rhel8STIG_stigrule_257845_Manage
+  when: rhel9stig_stigrule_257845_Manage
 
 # R-257846 RHEL-09-231025
 - name: Validate partition for /var/log
@@ -901,7 +901,7 @@
   vars:
     stig_rule_id: 257846
     disk_partition: /var/log
-  when: rhel8STIG_stigrule_257846_Manage
+  when: rhel9stig_stigrule_257846_Manage
 
 # R-257847 RHEL-09-231030
 - name: Validate partition for /var/log/audit
@@ -910,7 +910,7 @@
   vars:
     stig_rule_id: 257847
     disk_partition: /var/log/audit
-  when: rhel8STIG_stigrule_257847_Manage
+  when: rhel9stig_stigrule_257847_Manage
 
 # R-257848 RHEL-09-231035
 - name: Validate partition for /var/tmp
@@ -919,7 +919,7 @@
   vars:
     stig_rule_id: 257848
     disk_partition: /var/tmp
-  when: rhel8STIG_stigrule_257848_Manage
+  when: rhel9stig_stigrule_257848_Manage
 
 # R-257850 RHEL-09-231045
 - name: Validate nodev partition option for {{ default_home_path }}
@@ -929,7 +929,7 @@
     stig_rule_id: 257850
     disk_partition: "{{ default_home_path }}"
     partition_option: nodev
-  when: rhel8STIG_stigrule_257850_Manage
+  when: rhel9stig_stigrule_257850_Manage
 
 # R-257851 RHEL-09-231050
 - name: Validate nosuid partition option for {{ default_home_path }}
@@ -939,7 +939,7 @@
     stig_rule_id: 257851
     disk_partition: "{{ default_home_path }}"
     partition_option: nosuid
-  when: rhel8STIG_stigrule_257851_Manage
+  when: rhel9stig_stigrule_257851_Manage
 
 # R-257852 RHEL-09-231055
 - name: Validate noexec partition option for {{ default_home_path }}
@@ -949,4 +949,17 @@
     stig_rule_id: 257852
     disk_partition: "{{ default_home_path }}"
     partition_option: noexec
-  when: rhel8STIG_stigrule_257852_Manage
+  when: rhel9stig_stigrule_257852_Manage
+
+# R-257854 RHEL-09-231065
+- name: Set partition option 'noexec' for NFS mounts
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 257854
+    partition_option: noexec
+  loop: "{{ ansible_facts.mounts | selectattr('fstype', 'match', '^nfs') | list | map(attribute='mount') | list }}"
+  when:
+    - rhel9stig_stigrule_257854_Manage
+    - item not in rhel9stig_stigrule_257854_ignore_paths
