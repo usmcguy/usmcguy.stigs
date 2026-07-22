@@ -86,3 +86,5 @@ rhel8STIG_stigrule_257848_Manage: true
 rhel8STIG_stigrule_257850_Manage: true
 # R-257851 RHEL-09-231050
 rhel8STIG_stigrule_257851_Manage: true
+# R-257852 RHEL-09-231055
+rhel8STIG_stigrule_257852_Manage: true

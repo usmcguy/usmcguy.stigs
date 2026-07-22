@@ -940,3 +940,13 @@
     disk_partition: "{{ default_home_path }}"
     partition_option: nosuid
   when: rhel8STIG_stigrule_257851_Manage
+
+# R-257852 RHEL-09-231055
+- name: Validate noexec partition option for {{ default_home_path }}
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 257852
+    disk_partition: "{{ default_home_path }}"
+    partition_option: noexec
+  when: rhel8STIG_stigrule_257852_Manage
