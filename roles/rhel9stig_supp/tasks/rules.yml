@@ -1469,3 +1469,36 @@
   register: chmod_audit_tools
   changed_when: chmod_audit_tools.stdout_lines | length > 0
   when: rhel9stig_stigrule_257887_Manage
+
+# R-257888 RHEL-09-232040
+- name: Check expected permissions for cronie
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      rpm --verify cronie | awk '! ($2 == "c" && $1 ~ /^.\..\.\.\.\..\./) {print $0}' || true
+  register: cronie_perms
+  changed_when: false
+  when: rhel9stig_stigrule_257888_Manage
+
+- name: Check expected permissions for crontabs
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      rpm --verify crontabs | awk '! ($2 == "c" && $1 ~ /^.\..\.\.\.\..\./) {print $0}' || true
+  register: crontabs_perms
+  changed_when: false
+  when: rhel9stig_stigrule_257888_Manage
+
+- name: stigrule_257888__reinstall_cronie
+  ansible.builtin.command:
+    cmd: dnf reinstall cronie -y
+  when:
+    - rhel9stig_stigrule_257888_Manage
+    - cronie_perms.stdout | length > 0
+
+- name: stigrule_257888__reinstall_crontabs
+  ansible.builtin.command:
+    cmd: dnf reinstall crontabs -y
+  when:
+    - rhel9stig_stigrule_257888_Manage
+    - crontabs_perms.stdout | length > 0
