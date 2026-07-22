@@ -72,5 +72,7 @@ rhel9stig_stigrule_257835_keep_tftp: true
 rhel8STIG_stigrule_257837_Manage: true
 # R-257843 RHEL-09-231010
 rhel8STIG_stigrule_257843_Manage: true
-# R-257844 RHEL-09-231010
+# R-257844 RHEL-09-231015
 rhel8STIG_stigrule_257844_Manage: true
+# R-257845 RHEL-09-231020
+rhel8STIG_stigrule_257845_Manage: true
