@@ -920,3 +920,13 @@
     stig_rule_id: 257848
     disk_partition: /var/tmp
   when: rhel8STIG_stigrule_257848_Manage
+
+# R-257850 RHEL-09-231045
+- name: Validate nodev partition option for {{ default_home_path }}
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 257850
+    disk_partition: "{{ default_home_path }}"
+    partition_option: nodev
+  when: rhel8STIG_stigrule_257850_Manage
