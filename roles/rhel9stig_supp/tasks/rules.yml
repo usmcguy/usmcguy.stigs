@@ -1177,3 +1177,14 @@
     partition_option: nodev
   when:
     - rhel9stig_stigrule_257869_Manage
+
+# R-257870 RHEL-09-231145
+- name: Validate nodev partition option for /var/log
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: /var/log
+    stig_rule_id: 257870
+    partition_option: nodev
+  when:
+    - rhel9stig_stigrule_257870_Manage
