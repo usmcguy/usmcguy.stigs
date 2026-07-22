@@ -875,3 +875,12 @@
     stig_rule_id: 257843
     disk_partition: "{{ default_home_path }}"
   when: rhel8STIG_stigrule_257843_Manage
+
+# R-257844 RHEL-09-231010
+- name: Validate partition for /tmp
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 257844
+    disk_partition: /tmp
+  when: rhel8STIG_stigrule_257844_Manage
