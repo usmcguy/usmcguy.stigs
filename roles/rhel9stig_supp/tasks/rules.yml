@@ -893,3 +893,12 @@
     stig_rule_id: 257845
     disk_partition: /var
   when: rhel8STIG_stigrule_257845_Manage
+
+# R-257846 RHEL-09-231025
+- name: Validate partition for /var/log
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 257846
+    disk_partition: /var/log
+  when: rhel8STIG_stigrule_257846_Manage
