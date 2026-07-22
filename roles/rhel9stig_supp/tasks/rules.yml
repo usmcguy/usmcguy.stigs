@@ -1122,3 +1122,14 @@
     partition_option: noexec
   when:
     - rhel9stig_stigrule_257864_Manage
+
+# R-257865 RHEL-09-231120
+- name: Validate nosuid partition option for /dev/shm
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: /dev/shm
+    stig_rule_id: 257865
+    partition_option: nosuid
+  when:
+    - rhel9stig_stigrule_257865_Manage
