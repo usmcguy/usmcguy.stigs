@@ -1243,3 +1243,14 @@
     partition_option: nosuid
   when:
     - rhel9stig_stigrule_257875_Manage
+
+# R-257876 RHEL-09-231175
+- name: Validate nodev partition option for /var/tmp
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: /var/tmp
+    stig_rule_id: 257876
+    partition_option: nodev
+  when:
+    - rhel9stig_stigrule_257876_Manage
