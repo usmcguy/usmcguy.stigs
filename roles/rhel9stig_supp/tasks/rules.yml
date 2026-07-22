@@ -930,3 +930,13 @@
     disk_partition: "{{ default_home_path }}"
     partition_option: nodev
   when: rhel8STIG_stigrule_257850_Manage
+
+# R-257851 RHEL-09-231050
+- name: Validate nosuid partition option for {{ default_home_path }}
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    stig_rule_id: 257851
+    disk_partition: "{{ default_home_path }}"
+    partition_option: nosuid
+  when: rhel8STIG_stigrule_257851_Manage
