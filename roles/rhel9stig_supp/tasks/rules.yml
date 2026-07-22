@@ -1054,3 +1054,16 @@
   when:
     - rhel9stig_stigrule_257858_Manage
     - item not in rhel9stig_stigrule_257858_ignore_paths
+
+# R-257859 RHEL-09-231090
+- name: Validate nosuid partition option for removable devices
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 257859
+    partition_option: nosuid
+  loop: "{{ removable_mounts }}"
+  when:
+    - rhel9stig_stigrule_257859_Manage
+    - item not in rhel9stig_stigrule_257859_ignore_paths
