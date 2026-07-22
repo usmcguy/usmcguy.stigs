@@ -1313,7 +1313,7 @@
 
 - name: Add prune argument for excluded binary paths
   ansible.builtin.set_fact:
-    exclude_chown_binary_cmd: '\( {{ exclude_binary_paths }} \) -prune -o'
+    exclude_chmod_binary_cmd: '\( {{ exclude_binary_paths }} \) -prune -o'
   when:
     - rhel9stig_stigrule_257882_Manage
     - exclude_binary_paths is defined
@@ -1321,7 +1321,7 @@
 
 - name: Set empty var when no binary paths excluded
   ansible.builtin.set_fact:
-    exclude_chown_binary_cmd: ''
+    exclude_chmod_binary_cmd: ''
   when:
     - rhel9stig_stigrule_257882_Manage
     - exclude_binary_paths is not defined or exclude_binary_paths | length == 0
@@ -1329,9 +1329,9 @@
 - name: stigrule_257882__chmod_binary_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ item }} {{ exclude_chown_binary_cmd }} -type f  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
-  register: chown_libary_cmds
-  changed_when: chown_libary_cmds.stdout | length > 0
+    find -L {{ item }} {{ exclude_chmod_binary_cmd }} -type f  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+  register: chmod_binary_cmds
+  changed_when: chmod_binary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257882_Manage
   vars:
     binary_paths:
@@ -1371,7 +1371,7 @@
 - name: stigrule_257883__chmod_library_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ item }} {{ exclude_chown_library_cmd }} -type d  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+    find -L {{ item }} {{ exclude_chown_library_cmd }} -type d \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
   register: chown_libary_cmds
   changed_when: chown_libary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257883_Manage
@@ -1410,7 +1410,7 @@
 - name: stigrule_257883__chmod_library_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ item }} {{ exclude_chown_library_cmd }} -type d  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+    find -L {{ item }} {{ exclude_chown_library_cmd }} -type f \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
   register: chown_libary_cmds
   changed_when: chown_libary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257883_Manage
