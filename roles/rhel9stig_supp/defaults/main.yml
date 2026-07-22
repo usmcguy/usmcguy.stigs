@@ -132,3 +132,5 @@ rhel9stig_stigrule_257870_Manage: true
 rhel9stig_stigrule_257871_Manage: true
 # R-257872 RHEL-09-231155
 rhel9stig_stigrule_257872_Manage: true
+# R-257873 RHEL-09-231160
+rhel9stig_stigrule_257873_Manage: true

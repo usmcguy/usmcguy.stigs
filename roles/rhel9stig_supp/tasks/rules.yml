@@ -1210,3 +1210,14 @@
     partition_option: nosuid
   when:
     - rhel9stig_stigrule_257872_Manage
+
+# R-257873 RHEL-09-231160
+- name: Validate nodev partition option for /var/log/audit
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: /var/log/audit
+    stig_rule_id: 257873
+    partition_option: nodev
+  when:
+    - rhel9stig_stigrule_257873_Manage
