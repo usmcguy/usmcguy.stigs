@@ -1188,3 +1188,14 @@
     partition_option: nodev
   when:
     - rhel9stig_stigrule_257870_Manage
+
+# R-257871 RHEL-09-231150
+- name: Validate noexec partition option for /var/log
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: /var/log
+    stig_rule_id: 257871
+    partition_option: noexec
+  when:
+    - rhel9stig_stigrule_257871_Manage
