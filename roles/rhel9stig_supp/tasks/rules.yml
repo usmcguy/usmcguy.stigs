@@ -989,3 +989,55 @@
   when:
     - rhel9stig_stigrule_257856_Manage
     - item not in rhel9stig_stigrule_257856_ignore_paths
+
+# R-257857 RHEL-09-231080
+- name: Build list of removable device names and partitions
+  ansible.builtin.set_fact:
+    removable_devices: >-
+      {{
+        ansible_facts.devices
+        | dict2items
+        | selectattr('value.removable', 'defined')
+        | selectattr('value.removable', 'equalto', '1')
+        | map(attribute='key')
+        | list
+      }}
+    removable_partitions: >-
+      {{
+        ansible_facts.devices
+        | dict2items
+        | selectattr('value.removable', 'defined')
+        | selectattr('value.removable', 'equalto', '1')
+        | map(attribute='value.partitions')
+        | select('defined')
+        | map('dict2items')
+        | sum(start=[])
+        | map(attribute='key')
+        | list
+      }}
+
+- name: Combine device and partition names
+  ansible.builtin.set_fact:
+    all_removable_names: "{{ (removable_devices + removable_partitions) | unique | list }}"
+
+- name: Get mounts for removable devices
+  ansible.builtin.set_fact:
+    removable_mounts: >-
+      {{
+        ansible_facts.mounts
+        | selectattr('device', 'in', all_removable_names | map('regex_replace', '^', '/dev/') | list)
+        | map(attribute='mount')
+        | list
+      }}
+
+- name: Validate noexec partition option for removable devices
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 257857
+    partition_option: noexec
+  loop: "{{ removable_mounts }}"
+  when:
+    - rhel9stig_stigrule_257857_Manage
+    - item not in rhel9stig_stigrule_257857_ignore_paths

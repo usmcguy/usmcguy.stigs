@@ -2,8 +2,9 @@
   ansible.builtin.setup:
     gather_subset:
       - '!all'
-      - mounts
+      - devices
       - interfaces
+      - mounts
 
 # Conditions that must exist before executing the play
 - name: Check if using expected OS distribution and version
