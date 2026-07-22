@@ -1329,19 +1329,10 @@
 - name: stigrule_257882__chmod_binary_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ item }} {{ exclude_chmod_binary_cmd }} -type f  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+    find -L {{ rhel9stig_stigrule_257882_bin_paths | join(' ') }} {{ exclude_chmod_binary_cmd }} -type f \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
   register: chmod_binary_cmds
   changed_when: chmod_binary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257882_Manage
-  vars:
-    binary_paths:
-      - /bin
-      - /sbin
-      - /usr/bin
-      - /usr/sbin
-      - /usr/libexec
-      - /usr/local/bin
-      - /usr/local/sbin
 
 # R-257883 RHEL-09-232015
 - name: Define excluded library paths
@@ -1371,55 +1362,10 @@
 - name: stigrule_257883__chmod_library_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ item }} {{ exclude_chown_library_cmd }} -type d \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+    find -L {{ rhel9stig_stigrule_257883_library_paths | join(' ') }} {{ exclude_chown_library_cmd }} -type d \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
   register: chown_libary_cmds
   changed_when: chown_libary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257883_Manage
-  vars:
-    library_paths:
-      - /lib
-      - /lib64
-      - /usr/lib
-      - /usr/lib64
-
-# R-257883 RHEL-09-232015
-- name: Define excluded library file paths
-  ansible.builtin.set_fact:
-    exclude_library_paths: >-
-      {{ rhel9stig_stigrule_257883_ignore_paths
-        | map('regex_replace', '^(.*)$', "-path '\1'")
-        | join(' -o ')
-      }}
-  when: rhel9stig_stigrule_257883_Manage
-
-- name: Add prune argument for excluded library file paths
-  ansible.builtin.set_fact:
-    exclude_chown_library_cmd: '\( {{ exclude_library_paths }} \) -prune -o'
-  when:
-    - rhel9stig_stigrule_257883_Manage
-    - exclude_library_paths is defined
-    - exclude_library_paths | length > 0
-
-- name: Set empty var when no library paths excluded
-  ansible.builtin.set_fact:
-    exclude_chown_library_cmd: ''
-  when:
-    - rhel9stig_stigrule_257883_Manage
-    - exclude_library_paths is not defined or exclude_library_paths | length == 0
-
-- name: stigrule_257883__chmod_library_files
-  ansible.builtin.shell: |
-    set -o pipefail
-    find -L {{ item }} {{ exclude_chown_library_cmd }} -type f \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
-  register: chown_libary_cmds
-  changed_when: chown_libary_cmds.stdout | length > 0
-  when: rhel9stig_stigrule_257883_Manage
-  vars:
-    library_paths:
-      - /lib
-      - /lib64
-      - /usr/lib
-      - /usr/lib64
 
 # R-257884 RHEL-09-232020
 - name: Define excluded library file paths
@@ -1449,16 +1395,10 @@
 - name: stigrule_257884__chmod_library_files
   ansible.builtin.shell: |
     set -o pipefail
-    find {{ item }} {{ exclude_chown_library_file_cmd }} -type f  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+    find {{ rhel9stig_stigrule_257884_library_paths | join(' ') }} {{ exclude_chown_library_file_cmd }} -type f  \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
   register: chown_libary_file_cmds
   changed_when: chown_libary_file_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257884_Manage
-  vars:
-    library_paths:
-      - /lib
-      - /lib64
-      - /usr/lib
-      - /usr/lib64
 
 # R-257887 RHEL-09-232035
 - name: stigrule_257887__chmod_audit_tools
@@ -1527,3 +1467,36 @@
   register: chmod_interactive_user_home
   changed_when: chmod_interactive_user_home.stdout_lines | length > 0
   when: rhel9stig_stigrule_257890_Manage
+
+# R-257918 RHEL-09-232190
+- name: Define excluded binary paths
+  ansible.builtin.set_fact:
+    exclude_binary_paths_chown: >-
+      {{ rhel9stig_stigrule_257918_ignore_paths
+        | map('regex_replace', '^(.*)$', "-path '\1'")
+        | join(' -o ')
+      }}
+  when: rhel9stig_stigrule_257918_Manage
+
+- name: Add prune argument for excluded binary paths
+  ansible.builtin.set_fact:
+    exclude_chown_binary_cmd: '\( {{ exclude_binary_paths_chown }} \) -prune -o'
+  when:
+    - rhel9stig_stigrule_257918_Manage
+    - exclude_binary_paths_chown is defined
+    - exclude_binary_paths_chown | length > 0
+
+- name: Set empty var when no binary paths excluded
+  ansible.builtin.set_fact:
+    exclude_chown_binary_cmd: ''
+  when:
+    - rhel9stig_stigrule_257918_Manage
+    - exclude_binary_paths_chown is not defined or exclude_binary_paths_chown | length == 0
+
+- name: stigrule_257918__chown_binary_files
+  ansible.builtin.shell: |
+    set -o pipefail
+    find -L {{ rhel9stig_stigrule_257918_bin_paths | join(' ') }} {{ exclude_chown_binary_cmd }} -type f ! -user root -exec ls -al {} + -exec chown root {} + || true
+  register: chown_binary_cmds
+  changed_when: chown_binary_cmds.stdout | length > 0
+  when: rhel9stig_stigrule_257918_Manage

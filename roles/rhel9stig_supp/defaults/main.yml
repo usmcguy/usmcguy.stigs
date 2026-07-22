@@ -150,12 +150,30 @@ rhel9stig_stigrule_257881_ignore_paths: []
 # R-257882 RHEL-09-232010
 rhel9stig_stigrule_257882_Manage: true
 rhel9stig_stigrule_257882_ignore_paths: []
+rhel9stig_stigrule_257882_bin_paths:
+  - /bin
+  - /sbin
+  - /usr/bin
+  - /usr/sbin
+  - /usr/libexec
+  - /usr/local/bin
+  - /usr/local/sbin
 # R-257883 RHEL-09-232015
 rhel9stig_stigrule_257883_Manage: true
 rhel9stig_stigrule_257883_ignore_paths: []
+rhel9stig_stigrule_257883_library_paths:
+  - /lib
+  - /lib64
+  - /usr/lib
+  - /usr/lib64
 # R-257884 RHEL-09-232020
 rhel9stig_stigrule_257884_Manage: true
 rhel9stig_stigrule_257884_ignore_paths: []
+rhel9stig_stigrule_257884_library_paths:
+  - /lib
+  - /lib64
+  - /usr/lib
+  - /usr/lib64
 # R-257887 RHEL-09-232035
 rhel9stig_stigrule_257887_Manage: true
 # R-257888 RHEL-09-232040
@@ -164,3 +182,14 @@ rhel9stig_stigrule_257888_Manage: true
 rhel9stig_stigrule_257889_Manage: true
 # R-257890 RHEL-09-232050
 rhel9stig_stigrule_257890_Manage: true
+# R-257918 RHEL-09-232190
+rhel9stig_stigrule_257918_Manage: true
+rhel9stig_stigrule_257918_ignore_paths: []
+rhel9stig_stigrule_257918_bin_paths:
+  - /bin
+  - /sbin
+  - /usr/bin
+  - /usr/sbin
+  - /usr/libexec
+  - /usr/local/bin
+  - /usr/local/sbin
