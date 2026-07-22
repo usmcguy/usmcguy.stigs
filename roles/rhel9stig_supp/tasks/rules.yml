@@ -1516,3 +1516,14 @@
   register: chmod_init_files
   changed_when: chmod_init_files.stdout_lines | length > 0
   when: rhel9stig_stigrule_257889_Manage
+
+# R-257890 RHEL-09-232050
+- name: stigrule_257890__chmod_interactive_user_home
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      find '{{ item.value[4] }}' -maxdepth 0 \( -perm /g+w -o -perm /o+r -o -perm /o+w -o -perm /o+x \) -type d -exec ls -al {} + -exec chmod g-w,o-rwx {} + || true
+  loop: "{{ interactive_user_list }}"
+  register: chmod_interactive_user_home
+  changed_when: chmod_interactive_user_home.stdout_lines | length > 0
+  when: rhel9stig_stigrule_257890_Manage
