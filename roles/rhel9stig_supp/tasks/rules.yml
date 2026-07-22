@@ -1459,3 +1459,13 @@
       - /lib64
       - /usr/lib
       - /usr/lib64
+
+# R-257887 RHEL-09-232035
+- name: stigrule_257887__chmod_audit_tools
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      find '{{ rhel9stig_stigrule_audit_tool_bins | join(' ') }}' \( -perm /g+w -o -perm /o+w \) -exec ls -al {} + -exec chmod go-w {} + || true
+  register: chmod_audit_tools
+  changed_when: chmod_audit_tools.stdout_lines | length > 0
+  when: rhel9stig_stigrule_257887_Manage

@@ -156,3 +156,5 @@ rhel9stig_stigrule_257883_ignore_paths: []
 # R-257884 RHEL-09-232020
 rhel9stig_stigrule_257884_Manage: true
 rhel9stig_stigrule_257884_ignore_paths: []
+# R-257887 RHEL-09-232035
+rhel9stig_stigrule_257887_Manage: true
