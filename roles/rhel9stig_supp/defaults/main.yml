@@ -144,3 +144,6 @@ rhel9stig_stigrule_257876_Manage: true
 rhel9stig_stigrule_257877_Manage: true
 # R-257878 RHEL-09-231180
 rhel9stig_stigrule_257878_Manage: true
+# R-257881 RHEL-09-231200
+rhel9stig_stigrule_257881_Manage: true
+rhel9stig_stigrule_257881_ignore_paths: []

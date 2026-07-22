@@ -1276,3 +1276,27 @@
     partition_option: nosuid
   when:
     - rhel9stig_stigrule_257878_Manage
+
+# R-257881 RHEL-09-231200
+- name: Find non-root local partitions missing nodev
+  ansible.builtin.set_fact:
+    partitions_missing_nodev: >-
+      {{
+        ansible_facts.mounts
+        | rejectattr('mount', 'equalto', '/')
+        | rejectattr('options', 'search', '(^|,)nodev(,|$)')
+        | map(attribute='mount')
+        | list
+      }}
+
+- name: Validate nodev partition option for all non-root local partitions
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 257881
+    partition_option: nodev
+  loop: "{{ partitions_missing_nodev }}"
+  when:
+    - rhel9stig_stigrule_257881_Manage
+    - item not in rhel9stig_stigrule_257881_ignore_paths
