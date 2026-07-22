@@ -952,13 +952,13 @@
   when: rhel9stig_stigrule_257852_Manage
 
 # R-257854 RHEL-09-231065
-- name: Set partition option 'noexec' for NFS mounts
+- name: Validate nodev partition option for NFS mounts
   ansible.builtin.include_tasks:
     file: partition_option.yml
   vars:
     disk_partition: "{{ item }}"
     stig_rule_id: 257854
-    partition_option: noexec
+    partition_option: nodev
   loop: "{{ ansible_facts.mounts | selectattr('fstype', 'match', '^nfs') | list | map(attribute='mount') | list }}"
   when:
     - rhel9stig_stigrule_257854_Manage
