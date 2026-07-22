@@ -1506,3 +1506,13 @@
   when:
     - rhel9stig_stigrule_257888_Manage
     - crontabs_perms.stdout | length > 0
+
+# R-257889 RHEL-09-232045
+- name: stigrule_257889__chmod_init_files
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      find '{{ default_home_path }}' /root -maxdepth 2 \( -perm /g+w -o -perm /g+x -o -perm /o+r -o -perm /o+w -o -perm /o+x \) -type f -name ".*" -exec ls -al {} + -exec chmod g-wx,o-rwx {} + || true
+  register: chmod_init_files
+  changed_when: chmod_init_files.stdout_lines | length > 0
+  when: rhel9stig_stigrule_257889_Manage
