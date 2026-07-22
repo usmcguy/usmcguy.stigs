@@ -1199,3 +1199,14 @@
     partition_option: noexec
   when:
     - rhel9stig_stigrule_257871_Manage
+
+# R-257872 RHEL-09-231155
+- name: Validate nosuid partition option for /var/log
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: /var/log
+    stig_rule_id: 257872
+    partition_option: nosuid
+  when:
+    - rhel9stig_stigrule_257872_Manage
