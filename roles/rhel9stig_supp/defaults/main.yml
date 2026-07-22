@@ -65,3 +65,6 @@ rhel9stig_stigrule_257819_src_key_path: roles/rhel9stig_supp/files/RPM-GPG-KEY-r
 rhel9stig_stigrule_257822_Manage: true
 # R-257826 RHEL-09-215015
 rhel9stig_stigrule_257826_Manage: true
+# R-257835 RHEL-09-215060
+rhel9stig_stigrule_257835_Manage: true
+rhel9stig_stigrule_257835_keep_tftp: true

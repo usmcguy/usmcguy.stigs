@@ -816,3 +816,38 @@
     state: absent
   when:
     - rhel9stig_stigrule_257826_Manage
+
+# R-257835 RHEL-09-215060
+- name: stigrule_257835_ensure_tftp-server_secure_mode
+  community.general.ini_file:
+    section: Service
+    option: ExecStart
+    value: /usr/sbin/in.tftpd -s /var/lib/tftpboot
+    no_extra_spaces: true
+    mode: '0644'
+    owner: root
+    group: root
+  register: tftp_service_config
+  when:
+    - rhel9stig_stigrule_257835_Manage
+    - "'tftp-server' in ansible_facts.packages"
+    - rhel9stig_stigrule_257835_keep_tftp
+
+- name: Issue daemon-reload to pick up config changes and restart tftp-server
+  ansible.builtin.systemd_service:
+    state: restarted
+    daemon_reload: true
+    name: tftp-server
+  when:
+    - rhel9stig_stigrule_257835_Manage
+    - "'tftp-server' in ansible_facts.packages"
+    - tftp_service_config.changed
+    - rhel9stig_stigrule_257835_keep_tftp
+
+- name: stigrule_257835_remove_tftp-server
+  ansible.builtin.package:
+    name: tftp-server
+    state: absent
+  when:
+    - rhel9stig_stigrule_257835_Manage
+    - not rhel9stig_stigrule_257835_keep_tftp
