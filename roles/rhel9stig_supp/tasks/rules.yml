@@ -976,3 +976,16 @@
   when:
     - rhel9stig_stigrule_257855_Manage
     - item not in rhel9stig_stigrule_257855_ignore_paths
+
+# R-257856 RHEL-09-231075
+- name: Validate nosuid partition option for NFS mounts
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 257856
+    partition_option: nosuid
+  loop: "{{ ansible_facts.mounts | selectattr('fstype', 'match', '^nfs') | list | map(attribute='mount') | list }}"
+  when:
+    - rhel9stig_stigrule_257856_Manage
+    - item not in rhel9stig_stigrule_257856_ignore_paths
