@@ -1492,6 +1492,8 @@
 - name: stigrule_257888__reinstall_cronie
   ansible.builtin.command:
     cmd: dnf reinstall cronie -y
+  register: cronie_reinstall
+  changed_when: cronie_reinstall.rc == 0
   when:
     - rhel9stig_stigrule_257888_Manage
     - cronie_perms.stdout | length > 0
@@ -1499,6 +1501,8 @@
 - name: stigrule_257888__reinstall_crontabs
   ansible.builtin.command:
     cmd: dnf reinstall crontabs -y
+  register: crontabs_reinstall
+  changed_when: crontabs_reinstall.rc == 0
   when:
     - rhel9stig_stigrule_257888_Manage
     - crontabs_perms.stdout | length > 0
