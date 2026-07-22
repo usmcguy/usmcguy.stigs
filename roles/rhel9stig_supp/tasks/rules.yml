@@ -1111,3 +1111,14 @@
     partition_option: nodev
   when:
     - rhel9stig_stigrule_257863_Manage
+
+# R-257864 RHEL-09-231115
+- name: Validate noexec partition option for /dev/shm
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: /dev/shm
+    stig_rule_id: 257864
+    partition_option: noexec
+  when:
+    - rhel9stig_stigrule_257864_Manage
