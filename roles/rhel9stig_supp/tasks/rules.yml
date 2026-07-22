@@ -1067,3 +1067,14 @@
   when:
     - rhel9stig_stigrule_257859_Manage
     - item not in rhel9stig_stigrule_257859_ignore_paths
+
+# R-257860 RHEL-09-231095
+- name: Validate nodev partition option for /boot
+  ansible.builtin.include_tasks:
+    file: partition_option.yml
+  vars:
+    disk_partition: "{{ item }}"
+    stig_rule_id: 257860
+    partition_option: nodev
+  when:
+    - rhel9stig_stigrule_257860_Manage
