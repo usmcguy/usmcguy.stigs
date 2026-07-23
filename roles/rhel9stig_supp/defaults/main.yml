@@ -212,3 +212,11 @@ rhel9stig_stigrule_257920_library_paths:
   - /lib64
   - /usr/lib
   - /usr/lib64
+# R-257921 RHEL-09-232205
+rhel9stig_stigrule_257921_Manage: true
+rhel9stig_stigrule_257921_ignore_paths: []
+rhel9stig_stigrule_257921_library_paths:
+  - /lib
+  - /lib64
+  - /usr/lib
+  - /usr/lib64
