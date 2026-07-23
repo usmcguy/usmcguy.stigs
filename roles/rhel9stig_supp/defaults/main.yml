@@ -204,3 +204,11 @@ rhel9stig_stigrule_257919_bin_paths:
   - /usr/libexec
   - /usr/local/bin
   - /usr/local/sbin
+# R-257920 RHEL-09-232200
+rhel9stig_stigrule_257920_Manage: true
+rhel9stig_stigrule_257920_ignore_paths: []
+rhel9stig_stigrule_257920_library_paths:
+  - /lib
+  - /lib64
+  - /usr/lib
+  - /usr/lib64

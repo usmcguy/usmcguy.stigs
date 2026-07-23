@@ -1533,3 +1533,36 @@
   register: chgrp_binary_cmds
   changed_when: chgrp_binary_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257919_Manage
+
+# R-257920 RHEL-09-232200
+- name: Define excluded library paths
+  ansible.builtin.set_fact:
+    exclude_library_paths_chown: >-
+      {{ rhel9stig_stigrule_257920_ignore_paths
+        | map('regex_replace', '^(.*)$', "-path '\1'")
+        | join(' -o ')
+      }}
+  when: rhel9stig_stigrule_257920_Manage
+
+- name: Add prune argument for excluded library paths
+  ansible.builtin.set_fact:
+    exclude_chown_library_cmd: '\( {{ exclude_library_paths_chown }} \) -prune -o'
+  when:
+    - rhel9stig_stigrule_257920_Manage
+    - exclude_library_paths_chown is defined
+    - exclude_library_paths_chown | length > 0
+
+- name: Set empty var when no library paths excluded
+  ansible.builtin.set_fact:
+    exclude_chown_library_cmd: ''
+  when:
+    - rhel9stig_stigrule_257920_Manage
+    - exclude_library_paths_chown is not defined or exclude_library_paths_chown | length == 0
+
+- name: stigrule_257920__chown_library_files
+  ansible.builtin.shell: |
+    set -o pipefail
+    find -L {{ rhel9stig_stigrule_257920_bin_paths | join(' ') }} {{ exclude_chown_library_cmd }} -type f -name '*.so*' ! -user root -exec ls -al {} + -exec chown root {} + || true
+  register: chown_library_cmds
+  changed_when: chown_library_cmds.stdout | length > 0
+  when: rhel9stig_stigrule_257920_Manage
