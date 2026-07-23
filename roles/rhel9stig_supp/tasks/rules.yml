@@ -1562,7 +1562,7 @@
 - name: stigrule_257920__chown_library_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ rhel9stig_stigrule_257920_bin_paths | join(' ') }} {{ exclude_chown_library_cmd }} -type f -name '*.so*' ! -user root -exec ls -al {} + -exec chown root {} + || true
+    find {{ rhel9stig_stigrule_257920_bin_paths | join(' ') }} {{ exclude_chown_library_cmd }} -type f -name '*.so*' ! -user root -exec ls -al {} + -exec chown root {} + || true
   register: chown_library_cmds
   changed_when: chown_library_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257920_Manage
@@ -1595,7 +1595,40 @@
 - name: stigrule_257921__chgrp_library_files
   ansible.builtin.shell: |
     set -o pipefail
-    find -L {{ rhel9stig_stigrule_257921_bin_paths | join(' ') }} {{ exclude_chgrp_library_cmd }} -type f -name '*.so*' ! -group root -exec ls -al {} + -exec chgrp root {} + || true
+    find {{ rhel9stig_stigrule_257921_bin_paths | join(' ') }} {{ exclude_chgrp_library_cmd }} -type f -name '*.so*' ! -group root -exec ls -al {} + -exec chgrp root {} + || true
   register: chgrp_library_cmds
   changed_when: chgrp_library_cmds.stdout | length > 0
   when: rhel9stig_stigrule_257921_Manage
+
+# R-257922 RHEL-09-232210
+- name: Define excluded library paths
+  ansible.builtin.set_fact:
+    exclude_library_paths_chown_dir: >-
+      {{ rhel9stig_stigrule_257922_ignore_paths
+        | map('regex_replace', '^(.*)$', "-path '\1'")
+        | join(' -o ')
+      }}
+  when: rhel9stig_stigrule_257922_Manage
+
+- name: Add prune argument for excluded library paths
+  ansible.builtin.set_fact:
+    exclude_chown_dir_library_cmd: '\( {{ exclude_library_paths_chown_dir }} \) -prune -o'
+  when:
+    - rhel9stig_stigrule_257922_Manage
+    - exclude_library_paths_chown_dir is defined
+    - exclude_library_paths_chown_dir | length > 0
+
+- name: Set empty var when no library paths excluded
+  ansible.builtin.set_fact:
+    exclude_chown_dir_library_cmd: ''
+  when:
+    - rhel9stig_stigrule_257922_Manage
+    - exclude_library_paths_chown_dir is not defined or exclude_library_paths_chown_dir | length == 0
+
+- name: stigrule_257922__chown_library_dirs
+  ansible.builtin.shell: |
+    set -o pipefail
+    find {{ rhel9stig_stigrule_257922_bin_paths | join(' ') }} {{ exclude_chown_dir_library_cmd }} -type d ! -user root -exec ls -al {} + -exec chown root {} + || true
+  register: chown_dir_library_cmds
+  changed_when: chown_dir_library_cmds.stdout | length > 0
+  when: rhel9stig_stigrule_257922_Manage
