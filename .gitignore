@@ -15,3 +15,5 @@ inventory*
 site.yml
 .claude/worktrees/
 roles/rhel9stig_supp/files/__pycache__/
+_CLAUDE.md
+_MOLECULE_SCAFFOLD_STATUS.md
