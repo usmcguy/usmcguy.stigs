@@ -213,8 +213,7 @@ rhel8STIG_stigrule_230319_ignore_dirs: []
 rhel8STIG_stigrule_230320_Manage: true
 # R-230321
 rhel8STIG_stigrule_230321_Manage: true
-rhel8STIG_stigrule_230321_mode: '0700' # '0700' is the default permissions on folders set by RHEL
-rhel8STIG_stigrule_230321_ignore_List: []
+rhel8STIG_stigrule_230321_ignore_dirs: []
 # R-230322
 rhel8STIG_stigrule_230322_Manage: true
 # R-230323
@@ -229,6 +228,8 @@ rhel8STIG_stigrule_230326_new_owner: root
 rhel8STIG_stigrule_230327_Manage: true
 rhel8STIG_stigrule_230327_ignore_dirs: []
 rhel8STIG_stigrule_230327_new_group: wheel
+# R-230328
+rhel8STIG_stigrule_230328_Manage: true
 # R-230332 RHEL-08-020010
 rhel8STIG_stigrule_230332_Manage: true
 # R-230333
@@ -267,6 +268,7 @@ rhel8STIG_stigrule_230364_exempt_users: []
 # R-230367
 rhel8STIG_stigrule_230367_Manage: true
 rhel8STIG_stigrule_230367_exempt_users: []
+rhel8STIG_stigrule_230367_max: 180
 # R-230371
 rhel8STIG_stigrule_230371_Manage: true
 rhel8STIG_stigrule_230371_min_uid: 1000
@@ -416,10 +418,8 @@ rhel8STIG_stigrule_230525_Manage: true
 rhel8STIG_stigrule_230530_Manage: true
 # R-230531
 rhel8STIG_stigrule_230531_Manage: true
-rhel8STIG_stigrule_244531_ignore_dirs: []
 # R-230532
 rhel8STIG_stigrule_230532_Manage: true
-rhel8STIG_stigrule_244532_ignore_dirs: []
 # R-230553 RHEL-08-040320
 rhel8STIG_stigrule_230533_Manage: true
 # R-230534
@@ -427,7 +427,9 @@ rhel8STIG_stigrule_230534_Manage: true
 # R-230546
 # rhel8STIG_stigrule_230546_Manage: true
 # R-230548
-# rhel8STIG_stigrule_230548_Manage: true
+rhel8STIG_stigrule_230548_Manage: true
+rhel8STIG_stigrule_230548_max_user_namespace: 0
+rhel8STIG_stigrule_230548_ConfigFile: /etc/sysctl.d/99-stig-userns.conf
 # R-230550 RHEL-08-040290
 rhel8STIG_stigrule_230550_Manage: true
 rhel8STIG_stigrule_230550_smtpd_expected_value: "permit_mynetworks,reject"
@@ -448,6 +450,7 @@ rhel8STIG_stigrule_237642_Manage: true
 rhel8STIG_stigrule_237642_ConfigFile: /etc/sudoers.d/99-stig-password-policy
 # R-237643 RHEL-08-010384
 rhel8STIG_stigrule_237643_Manage: true
+rhel8STIG_stigrule_237643_ConfigFile: /etc/sudoers.d/99-stig-timeout-policy
 rhel8STIG_stigrule_237643_timeout_value: 0
 # R-244521
 rhel8STIG_stigrule_244521_Manage: true
@@ -468,8 +471,10 @@ rhel8STIG_stigrule_244529_Manage: true
 rhel8STIG_stigrule_244530_Manage: true
 # R-244531
 rhel8STIG_stigrule_244531_Manage: true
+rhel8STIG_stigrule_244531_ignore_dirs: []
 # R-244532
 rhel8STIG_stigrule_244532_Manage: true
+rhel8STIG_stigrule_244532_ignore_dirs: []
 # R-244533
 rhel8STIG_stigrule_244533_Manage: true
 # R-244534
@@ -478,9 +483,11 @@ rhel8STIG_stigrule_244534_Manage: true
 rhel8STIG_stigrule_244541_Manage: true
 # R-244545
 rhel8STIG_stigrule_244545_Manage: true
+rhel8STIG_stigrule_244545_fapolicyd_permissive: 0
 # R-244546
 rhel8STIG_stigrule_244546_Manage: true
 rhel8STIG_stigrule_244546_deny_option: deny_log
+rhel8STIG_stigrule_244546_fapolicyd_permissive: 0
 # R-244547
 rhel8STIG_stigrule_244547_Manage: true
 # R-244548
@@ -519,13 +526,18 @@ rhel8STIG_stigrule_251716_Manage: true
 rhel8STIG_stigrule_251718_Manage: true
 # R-254520
 rhel8STIG_stigrule_254520_Manage: true
+rhel8STIG_stigrule_254520_sysadm_u_mcs_range: 's0-s0:c0.c1023'
 rhel8STIG_stigrule_254520_sysadm_u_selinux_users: []
-rhel8STIG_stigrule_254520_staff_u_selinux_users: []
+rhel8STIG_stigrule_254520_staff_u_mcs_range: 's0-s0:c0.c1023'
+rhel8STIG_stigrule_254520_staff_u_selinux_users:
+  - wheel
+rhel8STIG_stigrule_254520_unconfined_u_mcs_range: 's0-s0:c0.c1023'
+rhel8STIG_stigrule_254520_unconfined_u_selinux_users: []
+rhel8STIG_stigrule_254520_user_u_mcs_range: 's0'
 rhel8STIG_stigrule_254520_user_u_selinux_users: []
 rhel8STIG_stigrule_254520_set_default_user_context: true
-rhel8STIG_stigrule_254520_default_selinux_users:
-  seuser: user_u
-  mcs_range: s0
+rhel8STIG_stigrule_254520_default_mcs_range: 's0'
+rhel8STIG_stigrule_254520_default_seuser: user_u
 # R-255924
 rhel8STIG_stigrule_255924_Manage: true
 # R-256973
