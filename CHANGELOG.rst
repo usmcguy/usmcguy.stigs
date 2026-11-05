@@ -4,6 +4,30 @@ usmcguy.stigs Release Notes
 
 .. contents:: Topics
 
+v1.1.2
+======
+
+Minor Changes
+-------------
+
+- rhel8stig_supp - add remediation for the graphical DOD login banner, separate home filesystem validation, and the ``user.max_user_namespaces`` setting.
+- rhel8stig_supp - support user and group principal resolution when assigning SELinux ``unconfined_u``, ``sysadm_u``, ``staff_u``, and ``user_u`` login mappings.
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- rhel9stig_supp - R-272496 now adds ``TYPE=sysadm_t ROLE=sysadm_r`` directly to existing nonexempt sudoers principals and removes the previous SELinux login-mapping, ``ssh_sysadm_login``, connection-reset, and lockout-protection workflow.
+
+Bugfixes
+--------
+
+- rhel8stig_supp - correct authselect profile and force handling, smart-card PAM option ordering, and R-230317 user exemption matching.
+- rhel8stig_supp - correct crypto-policy refresh and FIPS handling, remote syslog normalization, sudoers remediation, account password aging, and file ownership and permission enforcement.
+- rhel8stig_supp - improve R-230229 DOD certificate bundle processing, controller-side certificate inspection, and SSSD CA database ownership and permission handling.
+- rhel8stig_supp - report missing required partitions without aborting the remainder of the role.
+- rhel9stig_supp - correct R-258131 manage-variable gating and improve ownership, permissions, and controller-side processing for the DOD certificate bundle and SSSD CA database.
+- rhel9stig_supp - report missing required filesystems for R-257843 through R-257848 and related mount-option controls without aborting the remainder of the role.
+
 v1.1.1
 ======
 
