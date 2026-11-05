@@ -121,7 +121,7 @@
   delay: 30
   until: dnf_result is succeeded
 
-# V-230223 RHEL-08-010020
+# R-230223 RHEL-08-010020
 - name: Get current system-wide cryptographic policy
   ansible.builtin.command:
     cmd: update-crypto-policies --show
@@ -190,7 +190,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-230229 RHEL-08-010090
+# R-230229 RHEL-08-010090
 # https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_DoD.zip
 - name: stigrule_230229__define_vars
   ansible.builtin.set_fact:
@@ -380,7 +380,7 @@
     # - sssd_ca_db_stat.stat.exists
     - missing_root_cas | length > 0
 
-# V-230232
+# R-230232
 - name: Read shadow entries
   ansible.builtin.command: getent shadow
   register: shadow_entries
@@ -454,7 +454,7 @@
     - pexpect_check.rc != 0
     - pip_check.rc != 0
 
-# V-230234
+# R-230234
 - name: Check if /boot/efi/EFI/redhat/user.cfg present
   ansible.builtin.stat:
     path: /boot/efi/EFI/redhat/user.cfg
@@ -487,7 +487,7 @@
       not user_cfg_stat.stat.exists or
       grub_pass_check_uefi.stdout | length == 0
 
-# V-230235
+# R-230235
 - name: Check for BIOS grub2_password
   ansible.builtin.shell:
     cmd: |
@@ -512,7 +512,7 @@
     - boot_mode == "BIOS"
     - grub_pass_check_bios.stdout | length == 0
 
-# V-230237 RHEL-08-010160
+# R-230237 RHEL-08-010160
 - name: Check if sha512 present in /etc/pam.d/password-auth
   ansible.builtin.shell:
     cmd: |
@@ -534,7 +534,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-230238
+# R-230238
 - name: Look for keytab files
   ansible.builtin.find:
     paths: /etc
@@ -551,7 +551,7 @@
     - rhel8STIG_stigrule_230238_Manage
     - keytab_files.matched > 0
 
-# V-230243 RHEL-08-010190
+# R-230243 RHEL-08-010190
 - name: stigrule_230243__excluded_ww_paths
   ansible.builtin.set_fact:
     exclude_chmod_ww_paths: >-
@@ -584,7 +584,7 @@
   changed_when: chmod_ww.stdout | length > 0
   when: rhel8STIG_stigrule_230243_Manage
 
-# V-230245
+# R-230245
 - name: stigrule_230245__chmod_messages
   ansible.builtin.shell: |
     set -o pipefail
@@ -593,7 +593,7 @@
   changed_when: chmod_messages.stdout | length > 0
   when: rhel8STIG_stigrule_230245_Manage
 
-# V-230246
+# R-230246
 - name: stigrule_230246__chown_lib_files
   ansible.builtin.shell: |
     set -o pipefail
@@ -602,7 +602,7 @@
   changed_when: chown_messages.stdout | length > 0
   when: rhel8STIG_stigrule_230246_Manage
 
-# V-230247
+# R-230247
 - name: stigrule_230247__chgrp_messages
   ansible.builtin.shell: |
     set -o pipefail
@@ -611,7 +611,7 @@
   changed_when: chgrp_messages.stdout | length > 0
   when: rhel8STIG_stigrule_230247_Manage
 
-# V-230248
+# R-230248
 - name: stigrule_230248__chmod_var_log
   ansible.builtin.shell: |
     set -o pipefail
@@ -620,7 +620,7 @@
   changed_when: chmod_var_log.stdout | length > 0
   when: rhel8STIG_stigrule_230248_Manage
 
-# V-230249
+# R-230249
 - name: stigrule_230249__chown_var_log
   ansible.builtin.shell: |
     set -o pipefail
@@ -629,7 +629,7 @@
   changed_when: chown_var_log.stdout | length > 0
   when: rhel8STIG_stigrule_230249_Manage
 
-# V-230250
+# R-230250
 - name: stigrule_230250__chgrp_var_log
   ansible.builtin.shell: |
     set -o pipefail
@@ -638,7 +638,7 @@
   changed_when: chgrp_var_log.stdout | length > 0
   when: rhel8STIG_stigrule_230250_Manage
 
-# V-230251 RHEL-08-010290
+# R-230251 RHEL-08-010290
 - name: stigrule_230251__remove_outdated_hmac
   ansible.builtin.replace:
     path: /usr/share/crypto-policies/policies/FIPS.pol
@@ -683,7 +683,7 @@
   changed_when: rhel8STIG_stigrule_230251_update_crypto.rc == 0
   notify: reboot
 
-# V-230252 RHEL-08-010291
+# R-230252 RHEL-08-010291
 - name: stigrule_230252__remove_outdated_aes_128
   ansible.builtin.replace:
     path: /usr/share/crypto-policies/policies/FIPS.pol
@@ -732,7 +732,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-230253
+# R-230253
 - name: stigrule_230253__use_strong_entropy
   community.general.ini_file:
     path: /etc/sysconfig/sshd
@@ -753,7 +753,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-230257
+# R-230257
 - name: stigrule_230257__chmod_system_cmds
   ansible.builtin.shell: |
     set -o pipefail
@@ -762,7 +762,7 @@
   changed_when: chmod_system_cmds.stdout | length > 0
   when: rhel8STIG_stigrule_230257_Manage
 
-# V-230258
+# R-230258
 - name: stigrule_230258__chown_system_cmds
   ansible.builtin.shell: |
     set -o pipefail
@@ -771,7 +771,7 @@
   changed_when: chown_system_cmds.stdout | length > 0
   when: rhel8STIG_stigrule_230258_Manage
 
-# V-230259
+# R-230259
 - name: stigrule_230259__excluded_bin_paths
   ansible.builtin.set_fact:
     exclude_bin_paths: >-
@@ -821,7 +821,7 @@
   changed_when: chgrp_bins.stdout | length > 0
   when: rhel8STIG_stigrule_230259_Manage
 
-# V-230260 RHEL-08-010330
+# R-230260 RHEL-08-010330
 - name: stigrule_230260__chmod_lib_files
   ansible.builtin.shell: |
     set -o pipefail
@@ -830,7 +830,7 @@
   changed_when: chmod_libs.stdout | length > 0
   when: rhel8STIG_stigrule_230260_Manage
 
-# V-230261 RHEL-08-010340
+# R-230261 RHEL-08-010340
 - name: stigrule_230261__chown_lib_files
   ansible.builtin.shell: |
     set -o pipefail
@@ -839,7 +839,7 @@
   changed_when: chown_libs.stdout | length > 0
   when: rhel8STIG_stigrule_230261_Manage
 
-# V-230262 RHEL-08-010350
+# R-230262 RHEL-08-010350
 - name: stigrule_230261__chgrp_lib_files
   ansible.builtin.shell: |
     set -o pipefail
@@ -848,7 +848,7 @@
   changed_when: chgrp_libs.stdout | length > 0
   when: rhel8STIG_stigrule_230262_Manage
 
-# V-230263 RHEL-08-010360
+# R-230263 RHEL-08-010360
 - name: stigrule_230263__ensure_aide_present
   ansible.builtin.dnf:
     name: aide
@@ -884,7 +884,7 @@
     - rhel8STIG_stigrule_230263_Manage
     - aide_cron_files.stdout | length == 0
 
-# V-230264 RHEL-08-010370
+# R-230264 RHEL-08-010370
 - name: stigrule_230264__stat_conf_files
   ansible.builtin.stat:
     path: "{{ item }}"
@@ -974,7 +974,7 @@
     - rhel8STIG_stigrule_230264_Manage
     - repo_sections is defined
 
-# V-230271
+# R-230271
 - name: stigrule_230271__find_sudoers_files
   ansible.builtin.find:
     paths: /etc/sudoers.d
@@ -1001,7 +1001,7 @@
   loop: "{{ all_sudoers_files }}"
   when: rhel8STIG_stigrule_230271_Manage
 
-# V-230272 RHEL-08-010381
+# R-230272 RHEL-08-010381
 - name: Find sudoers files
   ansible.builtin.find:
     paths: /etc/sudoers.d
@@ -1027,7 +1027,7 @@
   loop: "{{ sudoers_d_files.files }}"
   when: rhel8STIG_stigrule_230272_Manage
 
-# V-230274 RHEL-08-010400
+# R-230274 RHEL-08-010400
 - name: stigrule_230274__find_etc_sssd_conf_files
   ansible.builtin.find:
     paths: /etc/sssd
@@ -1104,7 +1104,7 @@
   when:
     - rhel8STIG_stigrule_230274_Manage
 
-# V-230277 RHEL-08-010421
+# R-230277 RHEL-08-010421
 - name: Check grub2-editenv for page_poison
   ansible.builtin.shell:
     cmd: |
@@ -1156,7 +1156,7 @@
     - rhel8STIG_stigrule_230277_Manage
     - "'page_poison=1' not in grub2_poison_check.stdout"
 
-# V-230278 RHEL-08-010422
+# R-230278 RHEL-08-010422
 - name: Check grub2-editenv for vsyscall
   ansible.builtin.shell:
     cmd: |
@@ -1206,7 +1206,7 @@
     - rhel8STIG_stigrule_230278_Manage
     - "'vsyscall=none' not in grub2_vsyscall_check.stdout"
 
-# V-230279 RHEL-08-010423
+# R-230279 RHEL-08-010423
 - name: Check grub2-editenv for init_on_free
   ansible.builtin.shell:
     cmd: |
@@ -1260,7 +1260,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-230283 RHEL-08-010460
+# R-230283 RHEL-08-010460
 - name: Find shosts.equiv
   ansible.builtin.shell:
     cmd: find / -xdev -name shosts.equiv 2>/dev/null || true
@@ -1278,7 +1278,7 @@
     - rhel8STIG_stigrule_230283_Manage
     - shosts_equiv_files.stdout_lines | length > 0
 
-# V-230284
+# R-230284
 - name: stigrule_230284__remove_shosts_files
   ansible.builtin.shell:
     cmd: |
@@ -1288,7 +1288,7 @@
   changed_when: rhel8STIG_stigrule_230284_shosts_find_cmd.stdout_lines | length > 0
   when: rhel8STIG_stigrule_230284_Manage
 
-# V-230286 RHEL-08-010480
+# R-230286 RHEL-08-010480
 - name: stigrule_230286__find_ssh_public_host_keys
   ansible.builtin.shell:
     cmd: find /etc/ssh -type f -name '*key.pub' \( -perm /u+x -o -perm /g+x -o -perm /g+w -o -perm /o+w -o -perm /o+x \) -exec ls -al {} + -exec chmod u-x,g-wx,o-wx  {} + || true
@@ -1297,7 +1297,7 @@
   notify: ssh_restart
   when: rhel8STIG_stigrule_230286_Manage
 
-# V-230287 RHEL-08-010490
+# R-230287 RHEL-08-010490
 - name: stigrule_230287__find_ssh_private_host_keys
   ansible.builtin.shell:
     cmd: find /etc/ssh -type f -name 'ssh_host*key' \( -perm /u+x -o -perm /g+x -o -perm /g+w -o -perm /o+w -o -perm /o+x -o -perm /o+r \) -exec ls -al {} + -exec chmod u-x,g-wx,o-rwx  {} + || true
@@ -1309,7 +1309,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-230292 RHEL-08-010540
+# R-230292 RHEL-08-010540
 - name: Check /var partition
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1319,7 +1319,7 @@
   when:
     - rhel8STIG_stigrule_230292_Manage
 
-# V-230293 RHEL-08-010541
+# R-230293 RHEL-08-010541
 - name: Check /var/log partition
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1329,7 +1329,7 @@
   when:
     - rhel8STIG_stigrule_230293_Manage
 
-# V-230294 RHEL-08-010542
+# R-230294 RHEL-08-010542
 - name: Check /var/log/audit partition
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1339,7 +1339,7 @@
   when:
     - rhel8STIG_stigrule_230294_Manage
 
-# V-230295 RHEL-08-010543
+# R-230295 RHEL-08-010543
 - name: Check /tmp partition
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1349,7 +1349,7 @@
   when:
     - rhel8STIG_stigrule_230294_Manage
 
-# V-230299 RHEL-08-010570
+# R-230299 RHEL-08-010570
 - name: Set partion option 'nosuid' for {{ default_home_path }}
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1358,7 +1358,7 @@
     disk_partition: "{{ default_home_path }}"
     partition_option: nosuid
 
-# V-230300 RHEL-08-010571
+# R-230300 RHEL-08-010571
 - name: Set partion option 'nosuid' for /boot
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1370,7 +1370,7 @@
     - rhel8STIG_stigrule_230300_Manage
     - boot_mode == "BIOS"
 
-# V-230301 RHEL-08-010580
+# R-230301 RHEL-08-010580
 - name: Find non-root partitions missing 'nodev' option
   ansible.builtin.shell:
     cmd: >
@@ -1409,7 +1409,7 @@
     - rhel8STIG_stigrule_230301_Manage
     - rhel8STIG_stigrule_230301_mounts_missing_nodev.stdout_lines | length > 0
 
-# V-230302 RHEL-08-010590
+# R-230302 RHEL-08-010590
 - name: Set partition option 'noexec' for '{{ default_home_path }}' partition # noqa: name[template]
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1419,7 +1419,7 @@
     partition_option: noexec
   when: rhel8STIG_stigrule_230302_Manage
 
-# V-230303 RHEL-08-010600
+# R-230303 RHEL-08-010600
 - name: Get block devices
   ansible.builtin.command: lsblk -J -o NAME,RM,RO,SIZE,TYPE,MOUNTPOINT
   register: lsblk_out
@@ -1477,7 +1477,7 @@
     - rhel8STIG_stigrule_230303_Manage
     - removable_mounts is defined
 
-# V-230304 RHEL-08-010610
+# R-230304 RHEL-08-010610
 - name: Set partition option 'noexec' for removable partitions
   ansible.builtin.include_tasks:
     file: artition_option.yml
@@ -1490,7 +1490,7 @@
     - rhel8STIG_stigrule_230304_Manage
     - removable_mounts is defined
 
-# V-230305 RHEL-08-010620
+# R-230305 RHEL-08-010620
 - name: Set partition option 'nosuid' for removable partitions
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1503,7 +1503,7 @@
     - rhel8STIG_stigrule_230305_Manage
     - removable_mounts is defined
 
-# V-230306 RHEL-08-010630
+# R-230306 RHEL-08-010630
 - name: Find NFS mount points from ansible_mounts
   ansible.builtin.set_fact:
     nfs_mounts: >-
@@ -1527,7 +1527,7 @@
     - nfs_mounts | length > 0
     - item not in rhel8STIG_stigrule_230306_ignore_paths
 
-# V-230307 RHEL-08-010640
+# R-230307 RHEL-08-010640
 - name: Set partition option 'nodev' for NFS mounts
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1540,7 +1540,7 @@
     - rhel8STIG_stigrule_230306_Manage
     - item not in rhel8STIG_stigrule_230307_ignore_paths
 
-# V-230308 RHEL-08-010650
+# R-230308 RHEL-08-010650
 - name: Set partition option 'nosuid' for NFS mounts
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -1553,7 +1553,7 @@
     - rhel8STIG_stigrule_230306_Manage
     - item not in rhel8STIG_stigrule_230308_ignore_paths
 
-# V-230312 RHEL-08-010672
+# R-230312 RHEL-08-010672
 - name: stigrule_230312__disable_systemd-coredump_socket
   ansible.builtin.systemd_service:
     name: systemd-coredump.socket
@@ -1563,7 +1563,7 @@
   when:
     - rhel8STIG_stigrule_230312_Manage
 
-# V-230316
+# R-230316
 - name: Read /etc/nsswitch.conf
   ansible.builtin.slurp:
     src: /etc/nsswitch.conf
@@ -1858,7 +1858,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-230317
+# R-230317
 - name: stigrule_230317__define_etc_skel_bashrc
   ansible.builtin.copy:
     owner: root
@@ -1886,7 +1886,7 @@
     - STIGrule_230317_bashrc_files.stdout_lines | length > 0
     - (item | split('/'))[1] not in rhel8STIG_stigrule_230317_exempt_users
 
-# V-230318
+# R-230318
 - name: Find local partitions
   ansible.builtin.shell:
     cmd: |
@@ -1929,7 +1929,7 @@
   changed_when: chown_ww_part.stdout | length > 0
   when: rhel8STIG_stigrule_230318_Manage
 
-# V-230319
+# R-230319
 - name: Define excluded world-writable paths
   ansible.builtin.set_fact:
     exclude_chgrp_ww_paths: >-
@@ -1963,7 +1963,7 @@
   changed_when: chgrp_ww_part.stdout | length > 0
   when: rhel8STIG_stigrule_230319_Manage
 
-# V-230320
+# R-230320
 - ansible.builtin.include_tasks: # noqa: name[missing]
     file: interactive_users.yml
 
@@ -1981,7 +1981,7 @@
     - rhel8STIG_stigrule_230320_Manage
     - item.value[4] | length == 0
 
-# V-230321
+# R-230321
 - ansible.builtin.include_tasks: # noqa: name[missing]
     file: interactive_users.yml
 
@@ -1994,7 +1994,7 @@
   changed_when: user_init_files.stdout | length > 0
   when: rhel8STIG_stigrule_230321_Manage
 
-# V-230322
+# R-230322
 - name: Get group info
   ansible.builtin.getent:
     database: group
@@ -2018,7 +2018,7 @@
       }}
   when: rhel8STIG_stigrule_230322_Manage
 
-# V-230323
+# R-230323
 - name: stigrule_230323__create_home_directory
   ansible.builtin.user:
     name: "{{ item.key }}"
@@ -2030,7 +2030,7 @@
     - rhel8STIG_stigrule_230323_Manage
     - item.value[4]  | length == 0
 
-# V-230325
+# R-230325
 - name: stigrule_230325__chmod_user_init_files
   ansible.builtin.shell: |
     set -o pipefail
@@ -2040,7 +2040,7 @@
   changed_when: user_init_files.stdout | length > 0
   when: rhel8STIG_stigrule_230325_Manage
 
-# V-230326
+# R-230326
 - name: Define excluded paths
   ansible.builtin.set_fact:
     exclude_no_paths: >-
@@ -2073,7 +2073,7 @@
   changed_when: chown_no.stdout | length > 0
   when: rhel8STIG_stigrule_230326_Manage
 
-# V-230327
+# R-230327
 - name: Define excluded paths
   ansible.builtin.set_fact:
     exclude_ng_paths: >-
@@ -2106,7 +2106,7 @@
   changed_when: chgrp_ng.stdout | length > 0
   when: rhel8STIG_stigrule_230327_Manage
 
-# V-230332 RHEL-08-020010
+# R-230332 RHEL-08-020010
 - name: Ensure faillock directory exists
   ansible.builtin.file:
     path: "{{ rhel8STIG_stigrule_authselect_dir }}"
@@ -2146,7 +2146,7 @@
         | length
       ) > 0
 
-# V-230333
+# R-230333
 - name: stigrule_230333__faillock_conf_set_deny
   community.general.ini_file:
     path: /etc/security/faillock.conf
@@ -2162,7 +2162,7 @@
     - rhel8STIG_stigrule_230333_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-# V-230334 RHEL-08-020012
+# R-230334 RHEL-08-020012
 - name: Check faillock settings for fail_interval
   ansible.builtin.shell: |
     set -o pipefail
@@ -2186,7 +2186,7 @@
     - rhel8STIG_stigrule_230334_Manage
     - ansible_distribution_version is version('8.2', '<')
 
-# V-230335
+# R-230335
 - name: stigrule_230335__faillock_conf_set_fail_interval
   community.general.ini_file:
     path: /etc/security/faillock.conf
@@ -2202,7 +2202,7 @@
     - rhel8STIG_stigrule_230335_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-# V-230336 RHEL-08-020014
+# R-230336 RHEL-08-020014
 - name: Check faillock settings for unlock_time
   ansible.builtin.shell: |
     set -o pipefail
@@ -2225,7 +2225,7 @@
     - rhel8STIG_stigrule_230336_Manage
     - ansible_distribution_version is version('8.2', '<')
 
-# V-230337
+# R-230337
 - name: stigrule_230337__faillock_conf_set_unlock_time
   community.general.ini_file:
     path: /etc/security/faillock.conf
@@ -2241,7 +2241,7 @@
     - rhel8STIG_stigrule_230337_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-# V-230338 RHEL-08-020016
+# R-230338 RHEL-08-020016
 - name: Check faillock settings for dir
   ansible.builtin.shell: |
     set -o pipefail
@@ -2274,7 +2274,7 @@
         | length
       ) > 0
 
-# V-230339
+# R-230339
 - name: stigrule_230339_faillock.conf_set_dir
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
@@ -2286,7 +2286,7 @@
     - rhel8STIG_stigrule_230339_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-# V-230340 RHEL-08-020018
+# R-230340 RHEL-08-020018
 - name: Check faillock settings for silent
   ansible.builtin.shell: |
     set -o pipefail
@@ -2318,7 +2318,7 @@
         | length
       ) > 0
 
-# V-230341
+# R-230341
 - name: stigrule_230341_faillock.conf_set_silent
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
@@ -2334,7 +2334,7 @@
     - rhel8STIG_stigrule_230341_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-# V-230342 RHEL-08-020018
+# R-230342 RHEL-08-020018
 - name: Check faillock settings for audit
   ansible.builtin.shell: |
     set -o pipefail
@@ -2366,7 +2366,7 @@
         | length
       ) > 0
 
-# V-230343
+# R-230343
 - name: stigrule_230343_faillock.conf_set_audit
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
@@ -2414,7 +2414,7 @@
         | length
       ) > 0
 
-# V-230345
+# R-230345
 - name: stigrule_230345_faillock.conf_set_even_deny_root
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
@@ -2430,7 +2430,7 @@
     - rhel8STIG_stigrule_230345_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-# V-230351
+# R-230351
 - name: Check dconf configs for smartcard lock-screen
   ansible.builtin.shell:
     cmd: |
@@ -2449,7 +2449,7 @@
     - rhel8STIG_stigrule_230351_Manage
     - smartcard_lock.stdout_lines | length == 0
 
-# V-230356
+# R-230356
 - name: Check password-auth for pam_pwquality.so
   ansible.builtin.shell:
     cmd: |
@@ -2468,7 +2468,7 @@
     - rhel8STIG_stigrule_230356_Manage
     - password_pwquality.stdout | length == 0
 
-# V-230364
+# R-230364
 - name: stigrule_230364__pass_min_1_day # noqa:no-log-password
   ansible.builtin.user:
     name: "{{ item.key }}"
@@ -2479,7 +2479,7 @@
     - item.key not in rhel8STIG_stigrule_230364_exempt_users
     - item.value[1] | int < 65534
 
-# V-230367
+# R-230367
 - name: stigrule_230367__pass_60_days # noqa:no-log-password
   ansible.builtin.user:
     name: "{{ item.key }}"
@@ -2490,7 +2490,7 @@
     - item.key not in rhel8STIG_stigrule_230367_exempt_users
     - item.value[1] | int < 65534
 
-# V-230371
+# R-230371
 - name: Get all passwd entries
   ansible.builtin.getent:
     database: passwd
@@ -2611,7 +2611,7 @@
     - rhel8STIG_stigrule_230371_Manage
     - uid_changes_with_new is defined and uid_changes_with_new | length > 0
 
-# V-230372
+# R-230372
 - name: stigrule_230372__pam_cert_auth_sssd
   community.general.ini_file:
     exclusive: true
@@ -2658,7 +2658,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-230373
+# R-230373
 - name: Check if INACTIVE present in /etc/default/useradd
   ansible.builtin.shell:
     cmd: |
@@ -2693,7 +2693,7 @@
   register: useradd_result
   changed_when: useradd_result.rc == 0
 
-# V-230376
+# R-230376
 - name: Check if smartcard authentication is in use
   ansible.builtin.shell:
     cmd: |
@@ -2716,7 +2716,7 @@
     - rhel8STIG_stigrule_230376_Manage
     - smartcard_check.stdout_lines | length > 0
 
-# V-230380
+# R-230380
 - name: stigrule_230380_disable_PermitEmptyPasswords
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
@@ -2726,7 +2726,7 @@
   notify: ssh_restart
   when: rhel8STIG_stigrule_230380_Manage
 
-# V-230384
+# R-230384
 - name: Fnd user initialization files
   ansible.builtin.shell: |
     set -o pipefail
@@ -2745,7 +2745,7 @@
     - rhel8STIG_stigrule_230384_Manage
     - initialization_files.stdout_lines | length > 0
 
-# V-230385
+# R-230385
 - name: stigrule_230385__umask_shell
   ansible.builtin.replace:
     path: "{{ item }}"
@@ -2757,7 +2757,7 @@
     - /etc/profile
   when: rhel8STIG_stigrule_230385_Manage
 
-# V-230396 RHEL-08-030070
+# R-230396 RHEL-08-030070
 - name: Get log path from auditd.conf
   ansible.builtin.shell:
     cmd: |
@@ -2777,14 +2777,14 @@
   when:
     - rhel8STIG_stigrule_230396_Manage
 
-# V-230397 RHEL-08-030080
+# R-230397 RHEL-08-030080
 - name: stigrule_230397__chown_audit_log
   ansible.builtin.file:
     path: "{{ audit_log_path }}"
     owner: root
   when: rhel8STIG_stigrule_230397_Manage
 
-# V-230398 RHEL-08-030090
+# R-230398 RHEL-08-030090
 - name: stigrule_230398__chgrp_audit_log
   ansible.builtin.file:
     path: "{{ audit_log_path }}"
@@ -2804,28 +2804,28 @@
     group: root
   when: rhel8STIG_stigrule_230398_Manage
 
-# V-230399 RHEL-08-030100
+# R-230399 RHEL-08-030100
 - name: stigrule_230399__chown_audit_log_dir
   ansible.builtin.file:
     path: "{{ audit_log_path | dirname }}"
     owner: root
   when: rhel8STIG_stigrule_230399_Manage
 
-# V-230400 RHEL-08-030110
+# R-230400 RHEL-08-030110
 - name: stigrule_230400__chgrp_audit_log_dir
   ansible.builtin.file:
     path: "{{ audit_log_path | dirname }}"
     group: root
   when: rhel8STIG_stigrule_230400_Manage
 
-# V-230401 RHEL-08-030120
+# R-230401 RHEL-08-030120
 - name: stigrule_230401__chgrp_audit_log_dir
   ansible.builtin.file:
     path: "{{ audit_log_path | dirname }}"
     mode: '0700'
   when: rhel8STIG_stigrule_230401_Manage
 
-# V-230468
+# R-230468
 - name: Check grub2-editenv for audit
   ansible.builtin.shell: |
     set -o pipefail
@@ -2842,7 +2842,7 @@
     - rhel8STIG_stigrule_230468_Manage
     - "'audit=1' not in grub2_output.stdout"
 
-# V-230469
+# R-230469
 - name: Check grub2-editenv for audit_backlog_limit
   ansible.builtin.shell: |
     set -o pipefail
@@ -2861,7 +2861,7 @@
       (audit_backlog_limit.stdout | length == 0) or
       ((audit_backlog_limit.stdout | int) < (rhel8STIG_stigrule_230469_limit | int))
 
-# V-230470
+# R-230470
 - name: Check if USBGuard installed
   ansible.builtin.shell:
     cmd: |
@@ -2882,7 +2882,7 @@
     - rhel8STIG_stigrule_230470_Manage
     - usbguard_service.stdout | length > 0
 
-# V-230471 RHEL-08-030610
+# R-230471 RHEL-08-030610
 - name: stigrule_230471__chmod_audit_rules
   ansible.builtin.shell:
     cmd: |
@@ -2898,7 +2898,7 @@
     - /etc/audit/auditd.conf
   when: rhel8STIG_stigrule_230471_Manage
 
-# V-230472 RHEL-08-030620
+# R-230472 RHEL-08-030620
 - name: stigrule_230472__chmod_audit_tools
   ansible.builtin.shell:
     cmd: |
@@ -2909,7 +2909,7 @@
   loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230472_Manage
 
-# V-230473 RHEL-08-030630
+# R-230473 RHEL-08-030630
 - name: stigrule_230473__chown_audit_tools
   ansible.builtin.file:
     path: "{{ item }}"
@@ -2917,7 +2917,7 @@
   loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230473_Manage
 
-# V-230474 RHEL-08-030640
+# R-230474 RHEL-08-030640
 - name: stigrule_230474__chgrp_audit_tools
   ansible.builtin.file:
     path: "{{ item }}"
@@ -2925,7 +2925,7 @@
   loop: "{{ rhel8STIG_stigrule_audit_tool_bins }}"
   when: rhel8STIG_stigrule_230474_Manage
 
-# V-230475
+# R-230475
 - name: stigrule_230475__add_missing_lines
   ansible.builtin.lineinfile:
     path: /etc/aide.conf
@@ -2963,7 +2963,7 @@
     - rhel8STIG_stigrule_230479_Manage
     - rsyslog_remote_check.stdout_lines | length == 0
 
-# V-230484
+# R-230484
 - name: Ensure chrony is installed
   ansible.builtin.package:
     name: chrony
@@ -3007,7 +3007,7 @@
     line: '\1 maxpoll 16'
   when: rhel8STIG_stigrule_230484_Manage
 
-# V-230485 RHEL-08-030741
+# R-230485 RHEL-08-030741
 - name: Check chrony port
   ansible.builtin.shell:
     cmd: |
@@ -3032,7 +3032,7 @@
       chronyd_port_check.stdout.split()[1] | trim != "0"
   notify: restart_chronyd
 
-# V-230486 RHEL-08-030742
+# R-230486 RHEL-08-030742
 - name: Check chrony cmdport
   ansible.builtin.shell:
     cmd: |
@@ -3057,7 +3057,7 @@
       chronyd_cmdport_check.stdout.split()[1] | trim != "0"
   notify: restart_chronyd
 
-# V-230491
+# R-230491
 - name: Check grub2-editenv for pti
   ansible.builtin.shell: |
     set -o pipefail
@@ -3074,7 +3074,7 @@
     - rhel8STIG_stigrule_230491_Manage
     - "'on' not in grub2_pti_output.stdout"
 
-# V-230493 RHEL-08-040020
+# R-230493 RHEL-08-040020
 - name: Check modprobe for uvcvideo
   ansible.builtin.shell: |
     set -o pipefail
@@ -3128,7 +3128,7 @@
     - rhel8STIG_stigrule_230493_Manage
     - uvcvideo_files.stdout_lines | length == 0
 
-# V-230494
+# R-230494
 - name: Check modprobe for atm
   ansible.builtin.shell: |
     set -o pipefail
@@ -3182,7 +3182,7 @@
     - rhel8STIG_stigrule_230494_Manage
     - atm_files.stdout_lines | length == 0
 
-# V-230495
+# R-230495
 - name: Check modprobe for can
   ansible.builtin.shell: |
     set -o pipefail
@@ -3236,7 +3236,7 @@
     - rhel8STIG_stigrule_230495_Manage
     - can_files.stdout_lines | length == 0
 
-# V-230496
+# R-230496
 - name: Check modprobe for sctp
   ansible.builtin.shell: |
     set -o pipefail
@@ -3290,7 +3290,7 @@
     - rhel8STIG_stigrule_230496_Manage
     - sctp_files.stdout_lines | length == 0
 
-# V-230497
+# R-230497
 - name: Check modprobe for tipc
   ansible.builtin.shell: |
     set -o pipefail
@@ -3344,7 +3344,7 @@
     - rhel8STIG_stigrule_230497_Manage
     - tipc_files.stdout_lines | length == 0
 
-# V-230498
+# R-230498
 - name: Check modprobe for cramfs
   ansible.builtin.shell: |
     set -o pipefail
@@ -3398,7 +3398,7 @@
     - rhel8STIG_stigrule_230498_Manage
     - cramfs_files.stdout_lines | length == 0
 
-# V-230499
+# R-230499
 - name: Check modprobe for firewire-core
   ansible.builtin.shell: |
     set -o pipefail
@@ -3452,7 +3452,7 @@
     - rhel8STIG_stigrule_230499_Manage
     - firewire_files.stdout_lines | length == 0
 
-# V-230503
+# R-230503
 - name: Check modprobe for usb-storage
   ansible.builtin.shell: |
     set -o pipefail
@@ -3506,7 +3506,7 @@
     - rhel8STIG_stigrule_230503_Manage
     - usb_storage_files.stdout_lines | length == 0
 
-# V-230504
+# R-230504
 - name: stigrule_230504__ensure_firewalld_present
   ansible.builtin.dnf:
     name: firewalld
@@ -3653,7 +3653,7 @@
     - rhel8STIG_stigrule_230504_Manage
     - zone_details.firewalld_info.zones[default_zone].target != 'DROP'
 
-# V-230507
+# R-230507
 - name: Check modprobe for bluetooth
   ansible.builtin.shell: |
     set -o pipefail
@@ -3707,7 +3707,7 @@
     - rhel8STIG_stigrule_230507_Manage
     - bluetooth_files.stdout_lines | length == 0
 
-# V-230508 RHEL-08-040120
+# R-230508 RHEL-08-040120
 - name: Set partition option 'nodev' for /dev/shm
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3717,7 +3717,7 @@
     partition_option: nodev
   when: rhel8STIG_stigrule_230508_Manage
 
-# V-230509 RHEL-08-040121
+# R-230509 RHEL-08-040121
 - name: Set partition option 'nosuid' for /dev/shm
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3727,7 +3727,7 @@
     partition_option: nosuid
   when: rhel8STIG_stigrule_230509_Manage
 
-# V-230510 RHEL-08-040122
+# R-230510 RHEL-08-040122
 - name: Set partition option 'noexec' for /dev/shm
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3737,7 +3737,7 @@
     partition_option: noexec
   when: rhel8STIG_stigrule_230510_Manage
 
-# V-230511 RHEL-08-040123
+# R-230511 RHEL-08-040123
 - name: Set partition option 'nodev' for /tmp
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3747,7 +3747,7 @@
     partition_option: nodev
   when: rhel8STIG_stigrule_230511_Manage
 
-# V-230512 RHEL-08-040124
+# R-230512 RHEL-08-040124
 - name: Set partition option 'nosuid' for /tmp
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3757,7 +3757,7 @@
     partition_option: nosuid
   when: rhel8STIG_stigrule_230512_Manage
 
-# V-230513
+# R-230513
 - name: Set partition option 'noexec' for /tmp
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3767,7 +3767,7 @@
     partition_option: noexec
   when: rhel8STIG_stigrule_230513_Manage
 
-# V-230514 RHEL-08-040126
+# R-230514 RHEL-08-040126
 - name: Set partition option 'nodev' for /var/log
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3777,7 +3777,7 @@
     partition_option: nodev
   when: rhel8STIG_stigrule_230514_Manage
 
-# V-230515 RHEL-08-040127
+# R-230515 RHEL-08-040127
 - name: Set partition option 'nosuid' for /var/log
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3787,7 +3787,7 @@
     partition_option: nosuid
   when: rhel8STIG_stigrule_230515_Manage
 
-# V-230516 RHEL-08-040128
+# R-230516 RHEL-08-040128
 - name: Set partition option 'noexec' for /var/log
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3797,7 +3797,7 @@
     partition_option: noexec
   when: rhel8STIG_stigrule_230516_Manage
 
-# V-230517 RHEL-08-040129
+# R-230517 RHEL-08-040129
 - name: Set partition option 'nodev' for /var/log/audit
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3807,7 +3807,7 @@
     partition_option: nodev
   when: rhel8STIG_stigrule_230517_Manage
 
-# V-230518 RHEL-08-040130
+# R-230518 RHEL-08-040130
 - name: Set partition option 'nosuid' for /var/log/audit
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3817,7 +3817,7 @@
     partition_option: nosuid
   when: rhel8STIG_stigrule_230518_Manage
 
-# V-230519 RHEL-08-040131
+# R-230519 RHEL-08-040131
 - name: Set partition option 'noexec' for /var/log/audit
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3827,7 +3827,7 @@
     partition_option: noexec
   when: rhel8STIG_stigrule_230519_Manage
 
-# V-230520 RHEL-08-040132
+# R-230520 RHEL-08-040132
 - name: Set partition option 'nodev' for /var/tmp
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3837,7 +3837,7 @@
     partition_option: nodev
   when: rhel8STIG_stigrule_230520_Manage
 
-# V-230521 RHEL-08-040133
+# R-230521 RHEL-08-040133
 - name: Set partition option 'nosuid' for /var/tmp
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3847,7 +3847,7 @@
     partition_option: nosuid
   when: rhel8STIG_stigrule_230521_Manage
 
-# V-230522 RHEL-08-040134
+# R-230522 RHEL-08-040134
 - name: Set partition option 'noexec' for /var/tmp
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -3857,14 +3857,14 @@
     partition_option: noexec
   when: rhel8STIG_stigrule_230522_Manage
 
-# V-230523
+# R-230523
 - name: stigrule_230523__fapolicyd_present
   ansible.builtin.package:
     name: fapolicyd
     state: present
   when: rhel8STIG_stigrule_230523_Manage
 
-# V-230524
+# R-230524
 - name: stigrule_230524__usbguard_present
   ansible.builtin.package:
     name: usbguard
@@ -3931,7 +3931,7 @@
     - rhel8STIG_stigrule_230524_Manage
     - not usbguard_rules_conf.stat.exists
 
-# V-230525
+# R-230525
 - name: stigrule_230525__nfttables_default
   ansible.builtin.lineinfile:
     path: /etc/firewalld/firewalld.conf
@@ -3940,7 +3940,7 @@
     state: present
   when: rhel8STIG_stigrule_230525_Manage
 
-# V-230530 RHEL-08-040171
+# R-230530 RHEL-08-040171
 - name: Check_gui_installed
   ansible.builtin.shell:
     cmd: |
@@ -3975,7 +3975,7 @@
     - rhel8STIG_stigrule_230530_Manage
     - gnome_check.stdout_lines | length > 0
 
-# V-230532
+# R-230532
 - name: stigrule_230532__debug_shell_mask
   ansible.builtin.systemd_service:
     name: debug-shell.service
@@ -3985,7 +3985,7 @@
     force: true
   when: rhel8STIG_stigrule_230532_Manage
 
-# V-230550 RHEL-08-040290
+# R-230550 RHEL-08-040290
 - name: Gather package facts
   ansible.builtin.package_facts:
     manager: auto
@@ -4036,7 +4036,7 @@
     - rhel8STIG_stigrule_230550_Manage
     - "'postfix' in ansible_facts.packages"
 
-# V-230553 RHEL-08-040320
+# R-230553 RHEL-08-040320
 - name: stigrule_230553__remove_gui_packages
   ansible.builtin.dnf:
     name:
@@ -4047,7 +4047,7 @@
     state: absent
   when: rhel8STIG_stigrule_230553_Manage
 
-# V-230554
+# R-230554
 - name: stigrule_230554__ip_link_output
   ansible.builtin.shell: |
     set -o pipefail
@@ -4066,7 +4066,7 @@
     - rhel8STIG_stigrule_230554_Manage
     - iplink_out.stdout_lines is defined
 
-# V-230557 | RHEL-08-040350
+# R-230557 | RHEL-08-040350
 - name: Check if tftp-server installed
   ansible.builtin.shell:
     cmd: |
@@ -4122,14 +4122,14 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-237640 RHEL-08-010163
+# R-237640 RHEL-08-010163
 - name: stigrule_237640__grub2-tools_present
   ansible.builtin.package:
     name: krb5-server
     state: absent
   when: rhel8STIG_stigrule_237640_Manage
 
-# V-237641 RHEL-08-010382
+# R-237641 RHEL-08-010382
 - name: stigrule_237641__remove_insecure_ALL_entries_from_sudoers
   ansible.builtin.lineinfile:
     path: /etc/sudoers
@@ -4162,7 +4162,7 @@
     - rhel8STIG_stigrule_237641_Manage
     - sudoers_d_files.matched > 0
 
-# V-237642 RHEL-08-010383
+# R-237642 RHEL-08-010383
 - name: Find sudoers files with conflicting_flags
   ansible.builtin.find:
     paths:
@@ -4216,7 +4216,7 @@
     validate: '/usr/sbin/visudo -cf %s'
   when: rhel8STIG_stigrule_237642_Manage
 
-# V-237643 RHEL-08-010384
+# R-237643 RHEL-08-010384
 - name: Find sudoers files with timestamp_timeout
   ansible.builtin.find:
     paths:
@@ -4254,7 +4254,7 @@
     group: root
   when: rhel8STIG_stigrule_237643_Manage
 
-# V-244521
+# R-244521
 - name: stigrule_244521__grub2-tools_present
   ansible.builtin.package:
     name: grub2-tools
@@ -4340,7 +4340,7 @@
     - boot_mode == "UEFI"
     - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
 
-# V-244522
+# R-244522
 - name: stigrule_244522__current_superuser
   ansible.builtin.shell: |
     set -o pipefail
@@ -4417,7 +4417,7 @@
     - boot_mode == "BIOS"
     - uefi_superuser_updated.changed or uefi_password_pbkdf2.changed
 
-# v-244524
+# R-244524
 - name: Check for sha512 in system-auth
   ansible.builtin.shell:
     cmd: |
@@ -4436,7 +4436,7 @@
     - rhel8STIG_stigrule_244524_Manage
     - system_auth_sha512.stdout | length == 0
 
-# V-244529 RHEL-08-010544
+# R-244529 RHEL-08-010544
 - name: Check if /var/tmp on seperate partition
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -4445,7 +4445,7 @@
     stig_rule_id: 244529
   when: rhel8STIG_stigrule_244529_Manage
 
-# V-244530 RHEL-08-010572
+# R-244530 RHEL-08-010572
 - name: Set partition option 'nosuid' for /boot/efi
   ansible.builtin.include_tasks:
     file: partition_option.yml
@@ -4457,7 +4457,7 @@
     - rhel8STIG_stigrule_244530_Manage
     - boot_mode == "UEFI"
 
-# V-244531
+# R-244531
 - name: stigrule_244531__excluded_paths
   ansible.builtin.set_fact:
     exclude_ng_paths: >-
@@ -4500,7 +4500,7 @@
   changed_when: fix_dir_perms.stdout | length > 0
   when: rhel8STIG_stigrule_244531_Manage
 
-# V-244532
+# R-244532
 - name: Get user groups
   ansible.builtin.shell: |
     set -o pipefail
@@ -4565,7 +4565,7 @@
   when:
     - rhel8STIG_stigrule_244532_Manage
 
-# V-244533
+# R-244533
 - name: Get line numbers from /etc/pam.d/system-auth for pam_faillock and pam_unix entries
   ansible.builtin.shell: |
     awk '
@@ -4628,7 +4628,7 @@
       or not (rhel8stig_v244533_authfail_line < rhel8stig_v244533_account_line)
       or not (rhel8stig_v244533_preauth_line < rhel8stig_v244533_unix_line)
 
-# V-244534
+# R-244534
 - name: Get line numbers from /etc/pam.d/password-auth for pam_faillock and pam_unix entries
   ansible.builtin.shell: |
     awk '
@@ -4691,7 +4691,7 @@
       or not (rhel8stig_v244534_authfail_line < rhel8stig_v244534_account_line)
       or not (rhel8stig_v244534_preauth_line < rhel8stig_v244534_unix_line)
 
-# V-244541 RHEL-08-020332
+# R-244541 RHEL-08-020332
 - name: Check if nullok present in /etc/pam.d/password-auth
   ansible.builtin.shell:
     cmd: |
@@ -4711,7 +4711,7 @@
     - rhel8STIG_stigrule_244541_Manage
     - password_auth_nullok.stdout | length > 0
 
-# V-244545
+# R-244545
 - name: stigrule_244545__fapolicyd_permissive
   community.general.ini_file:
     path: /etc/fapolicyd/fapolicyd.conf
@@ -4729,7 +4729,7 @@
     enabled: true
   when: rhel8STIG_stigrule_244545_Manage
 
-# V-244546
+# R-244546
 - name: stigrule_244546__copy_fapolicyd_rules
   ansible.builtin.copy:
     src: files/fapolicyd/
@@ -4842,7 +4842,7 @@
     - ansible_distribution_version is version('8.4', '<=')
     - "('deny' not in compiled_rules_84.stdout) or ('perm=any' not in compiled_rules_84.stdout)"
 
-# V-244547
+# R-244547
 - name: stigrule_244547__usbguard
   ansible.builtin.package:
     name: usbguard
@@ -4850,7 +4850,7 @@
   when: rhel8STIG_stigrule_244547_Manage
   notify: STIGrule_230470__usbguard_daemon_conf_updated
 
-# V-244548
+# R-244548
 - name: stigrule_244548__usbguard_enable
   ansible.builtin.service:
     name: usbguard.service
@@ -4858,7 +4858,7 @@
     enabled: true
   when: rhel8STIG_stigrule_244548_Manage
 
-# V-250315
+# R-250315
 - name: stigrule_250315__faillock_conf
   community.general.ini_file:
     path: /etc/security/faillock.conf
@@ -4931,7 +4931,7 @@
     - rhel8STIG_stigrule_250315_Manage
     - ansible_distribution_version is version('8.2', '>=')
 
-# V-250316 RHEL-08-020018
+# R-250316 RHEL-08-020018
 - name: stigrule_250316__check_rhel_version
   ansible.builtin.set_fact:
     rhel8STIG_250316_applicable: "{{ ansible_distribution_version is version('8.2', '<') }}"
@@ -4994,7 +4994,7 @@
     - rhel8STIG_250316_selinux_status.stdout == "Enforcing"
     - rhel8STIG_250316_context_check.stdout != "faillog_t"
 
-# V-250317
+# R-250317
 - name: stigrule_250317__find_config_files_with_forwarding
   ansible.builtin.shell: |
       set -o pipefail
@@ -5039,7 +5039,7 @@
     - sysctl_output_files.stdout_lines | length == 0
     - ansible_distribution_version is version('8.4', '>=')
 
-# V-251706 RHEL-08-010121
+# R-251706 RHEL-08-010121
 - name: Check for accounts with blank_passwords
   ansible.builtin.shell: |
     set -o pipefail
@@ -5066,14 +5066,14 @@
     - rhel8STIG_stigrule_251706_Manage
     - blank_password_accounts.stdout | length > 0
 
-# V-251707
+# R-251707
 - name: stigrule_251707__find_system_wide_lib_dirs_enforce_755
   ansible.builtin.shell: find /lib /lib64 /usr/lib /usr/lib64 \( -perm /g+w -o -perm /o+w \) -type d ! -xtype l -exec ls -ald {} + -exec chmod g-w,o-w {} +;
   register: libs_mode
   changed_when: libs_mode.stdout_lines | length > 0
   when: rhel8STIG_stigrule_251707_Manage
 
-# V-251708
+# R-251708
 - name: stigrule_251708__excluded_lib_paths
   ansible.builtin.set_fact:
     STIGrule_251708_exclude_lib_paths: >-
@@ -5104,7 +5104,7 @@
   changed_when: libs_own.stdout_lines | length > 0
   when: rhel8STIG_stigrule_251708_Manage
 
-# V-251709
+# R-251709
 - name: stigrule_251709__excluded_lib_paths
   ansible.builtin.set_fact:
     STIGrule_251709_exclude_lib_paths: >-
@@ -5152,7 +5152,7 @@
   changed_when: libs_grp.stdout_lines | length > 0
   when: rhel8STIG_stigrule_251709_Manage
 
-# V-251710
+# R-251710
 - name: stigrule_251710__aide_present
   ansible.builtin.package:
     name: aide
@@ -5274,7 +5274,7 @@
     - aide_out.changed
 
 
-# V-251711
+# R-251711
 - name: stigrule_251711__includedir_present
   ansible.builtin.lineinfile:
     path: /etc/sudoers
@@ -5301,7 +5301,7 @@
     - rhel8STIG_stigrule_251711_Manage
     - sudoers_include.stdout_lines | length > 0
 
-# V-251712
+# R-251712
 - name: stigrule_251712__remove_pam_succeed_if_sudo
   ansible.builtin.lineinfile:
     path: /etc/pam.d/sudo
@@ -5309,7 +5309,7 @@
     state: absent
   when: rhel8STIG_stigrule_251712_Manage
 
-# V-251713
+# R-251713
 - name: Check if pam_pwquality in /etc/pam.d/system-auth
   ansible.builtin.shell: |
     set -o pipefail
@@ -5330,7 +5330,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-251716
+# R-251716
 - name: Find pwquality drop-in files
   ansible.builtin.find:
     paths: /etc/security/pwquality.conf.d
@@ -5411,7 +5411,7 @@
   when:
     - rhel8stig_v251716_retry_files | length == 0
 
-# V-251718 RHEL-08-040321 SRG-OS-000480-GPOS-00227
+# R-251718 RHEL-08-040321 SRG-OS-000480-GPOS-00227
 - name: Get current system default target
   ansible.builtin.command: systemctl get-default
   register: current_system_target
@@ -5430,7 +5430,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-254520
+# R-254520
 - name: stigrule_254520__enable SSH logins for sysadm_u
   ansible.posix.seboolean:
     name: ssh_sysadm_login
@@ -5591,7 +5591,7 @@
     - rhel8STIG_stigrule_254520_Manage
     - rhel8STIG_stigrule_254520_set_default_user_context
 
-# V-256973
+# R-256973
 - name: stigrule_256973__copy_GPG_key_file
   ansible.builtin.copy:
     src: files/RPM-GPG-KEY-redhat-release
@@ -5607,7 +5607,7 @@
     key: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
   when: rhel8STIG_stigrule_256973_Manage
 
-# V-257258
+# R-257258
 - name: stigrule_257258__set_StopIdleSessionSec
   ansible.builtin.lineinfile:
     path: /etc/systemd/logind.conf
@@ -5619,7 +5619,7 @@
     - rhel8STIG_stigrule_257258_Manage
     - ansible_distribution_version is version('8.7', '>=')
 
-# V-268322
+# R-268322
 - name: Check if nullok present in /etc/pam.d/system-auth
   ansible.builtin.shell:
     cmd: |
@@ -5642,7 +5642,7 @@
 - name: Run pending handlers
   ansible.builtin.meta: flush_handlers
 
-# V-272482
+# R-272482
 - name: stigrule_272482__update_openssh_approved_MACs
   ansible.builtin.lineinfile:
     path: "{{ item }}"
@@ -5671,7 +5671,7 @@
   changed_when: rhel8STIG_stigrule_272482_update_crypto.rc == 0
   notify: reboot
 
-# V-272483
+# R-272483
 - name: stigrule_272483__update_openssh_approved_ciphers
   ansible.builtin.lineinfile:
     path: "{{ item }}"
@@ -5700,7 +5700,7 @@
   changed_when: rhel8STIG_stigrule_272483_update_crypto.rc == 0
   notify: reboot
 
-# V-272484
+# R-272484
 - name: stigrule_272484__Ensure_type_sysadm_t_present_on_etc_sudoers_lines
   ansible.builtin.lineinfile:
     path: /etc/sudoers
@@ -5789,7 +5789,7 @@
       "ansible_user not in (sudoers_d_files.files | map(attribute='path') | map('basename') | list)"
     - item.path not in rhel8STIG_stigrule_272484_ignore_files
 
-# V-279930 RHEL-08-010280
+# R-279930 RHEL-08-010280
 - name: Check if libreswan installed
   ansible.builtin.package_facts:
     manager: auto
@@ -5806,7 +5806,7 @@
     - "'libreswan' in ansible_facts.packages"
   notify: restart_ipsec
 
-# V-279931 RHEL-08-010275
+# R-279931 RHEL-08-010275
 - name: stigrule_279931__ensure_bind_crypto_policy_not_commented
   ansible.builtin.replace:
     path: /etc/named.conf
@@ -5829,7 +5829,7 @@
     - rhel8STIG_stigrule_279931_Manage
     - "'bind' in ansible_facts.packages"
 
-# V-279932 RHEL-08-010270 SRG-OS-396-GPOS-00176
+# R-279932 RHEL-08-010270 SRG-OS-396-GPOS-00176
 - name: Check crypto policy name
   ansible.builtin.shell:
     cmd: |
@@ -5872,7 +5872,7 @@
     - rhel8STIG_stigrule_279932_Manage
     - crypto_policy_applied.stdout != "The configured policy is applied"
 
-# V-279933 RHEL-08-010270
+# R-279933 RHEL-08-010270
 - name: stigrule_279933__install_crypto_policies_package
   ansible.builtin.dnf:
     name: crypto-policies
