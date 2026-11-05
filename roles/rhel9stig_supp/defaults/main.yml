@@ -577,21 +577,7 @@ rhel9stig_stigrule_270180_Manage: true
 rhel9stig_stigrule_270180_enforcing: false
 rhel9stig_stigrule_270180_deny_option: deny_log
 # R-272496 RHEL-09-431016
-# Designated sudoers administrator group for SELinux context elevation.
 rhel9stig_stigrule_272496_Manage: true
-rhel9stig_stigrule_272496_admin_group: wheel
-rhel9stig_stigrule_272496_selinux_type: sysadm_t
-rhel9stig_stigrule_272496_selinux_role: sysadm_r
-rhel9stig_stigrule_272496_mcs_range: 's0-s0:c0.c1023'
-# Additional individual users (beyond %admin_group members) to map to sysadm_u.
-# ansible_user is always added automatically as a lockout safety net.
-rhel9stig_stigrule_272496_sysadm_u_selinux_users: []
-rhel9stig_stigrule_272496_ignore_files: []
-# Optional hardening beyond what RHEL9's STIG requires (no RHEL9 rule mandates
-# this, unlike RHEL8's V-254520): map the __default__ SELinux login (i.e. any
-# account not otherwise mapped) to a specific SELinux user. Off by default,
-# since it affects every unmapped login on the box, not just the designated
-# admin group's sudo path.
-rhel9stig_stigrule_272496_set_default_user_context: false
-rhel9stig_stigrule_272496_default_selinux_user: user_u
-rhel9stig_stigrule_272496_default_mcs_range: s0
+rhel9stig_stigrule_272496_exempt_principals:
+  - root
+  - "%wheel"
