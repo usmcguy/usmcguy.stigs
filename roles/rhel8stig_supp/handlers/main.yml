@@ -57,7 +57,11 @@
   register: auth_select_apply
   changed_when: "'changes were applied' in auth_select_apply.stdout"
   notify: sssd_restart
-
+- name: Get current system-wide cryptographic policy
+  ansible.builtin.command:
+    cmd: update-crypto-policies --show
+  changed_when: false
+  register: current_crypto_policy
 - name: STIGrule_230470__usbguard_daemon_conf_updated
   ansible.builtin.lineinfile:
     path: /etc/usbguard/usbguard-daemon.conf

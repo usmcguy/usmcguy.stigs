@@ -1505,7 +1505,7 @@
   ansible.builtin.copy:
     dest: /etc/tmpfiles.d/rootfiles.conf
     content: |
-      # Managed by usmcguy.stigs - overrides /usr/lib/tmpfiles.d/rootfiles.conf
+      # Managed by Ansible - overrides /usr/lib/tmpfiles.d/rootfiles.conf
       # so /root's dotfiles stay at RHEL-09-232045's required 0740-or-less
       # mode across reboots, instead of being reset to the package default
       # of 644 by systemd-tmpfiles-setup.service on every boot.
@@ -3837,12 +3837,17 @@
     path: "{{ dod_work_dir }}"
     state: directory
     mode: '0755'
+    owner: root
+    group: root
   when: rhel9stig_stigrule_258131_Manage
 
 - name: stigrule_258131__unarchive_DoD_certs
   ansible.builtin.unarchive:
     src: "{{ rhel9stig_stigrule_258131_ca_bundle_path }}"
     dest: "{{ dod_work_dir }}"
+    mode: '0755'
+    owner: root
+    group: root
   when: rhel9stig_stigrule_258131_Manage
 
 - name: stigrule_258131__find_pem_p7b
@@ -3868,6 +3873,14 @@
   changed_when: pkcs7_convert.rc == 0 and ('skipped' not in pkcs7_convert.stdout)
   when: rhel9stig_stigrule_258131_Manage
 
+- name: Set permission on dod_bundle.pem
+  ansible.builtin.file:
+    path: "{{ dod_work_dir }}/dod_bundle.pem"
+    mode: "0644"
+    owner: root
+    group: root
+  when: rhel9stig_stigrule_258131_Manage
+
 - name: stigrule_258131__read_dod_bundle_pem
   ansible.builtin.slurp:
     path: "{{ dod_work_dir }}/dod_bundle.pem"
@@ -3889,6 +3902,7 @@
     content: "{{ item }}"
   loop: "{{ dod_bundle_pems }}"
   register: dod_ca_infos
+  become: false
   no_log: true
   when: rhel9stig_stigrule_258131_Manage
   delegate_to: localhost
@@ -4806,238 +4820,40 @@
 
 # ---------------------------------------------------------------------------
 # R-272496 RHEL-09-431016
-# RHEL9's STIG has no separate rule (unlike RHEL8's V-254520) requiring admins to
-# be mapped to a confined SELinux login user. Without that mapping, sudo itself
-# can fail with an SELinux denial once TYPE=sysadm_t ROLE=sysadm_r is required on
-# an admin's sudoers line, since accounts left on the default __default__ /
-# unconfined_u login mapping aren't permitted to transition into sysadm_r. The
-# semanage login mapping and ssh_sysadm_login boolean (mirroring RHEL8's
-# V-254520/V-272484 pairing) are therefore included here as prerequisite logic
-# for this rule, not as a separately tracked STIG ID.
-# ---------------------------------------------------------------------------
-- name: stigrule_272496__enable_ssh_sysadm_login
-  ansible.posix.seboolean:
-    name: ssh_sysadm_login
-    state: true
-    persistent: true
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-
-- name: stigrule_272496__get_selinux_logins
-  ansible.builtin.command:
-    cmd: semanage login -l -n
-  register: rhel9stig_272496_selinux_logins
-  changed_when: false
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-
-- name: stigrule_272496__build_login_dictionary
-  ansible.builtin.set_fact:
-    rhel9stig_272496_login_map: >-
-      {{
-        (rhel9stig_272496_login_map | default([]))
-        + [ {
-              'login':  (item.split()[0]),
-              'seuser': (item.split()[1] | default('')),
-              'range':  (item.split()[2] | default(''))
-            } ]
-      }}
-  loop: >-
-    {{ rhel9stig_272496_selinux_logins.stdout_lines | default([])
-        | reject('search', '^Login Name')
-        | reject('search', '^[- ]+$')
-        | list }}
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-
-- name: stigrule_272496__ensure_ansible_user_mapped
-  ansible.builtin.set_fact:
-    rhel9stig_stigrule_272496_sysadm_u_selinux_users: "{{ rhel9stig_stigrule_272496_sysadm_u_selinux_users + [ansible_user] }}"
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-    - ansible_user not in rhel9stig_stigrule_272496_sysadm_u_selinux_users
-
-- name: stigrule_272496__map_admin_group_to_sysadm_u # noqa: command-instead-of-shell
-  ansible.builtin.shell:
-    cmd: >-
-      semanage login
-      {{ have_mapping | ternary('-m', '-a') }}
-      -s sysadm_u
-      -r {{ rhel9stig_stigrule_272496_mcs_range }}
-      %{{ rhel9stig_stigrule_272496_admin_group }}
-  register: rhel9stig_272496_group_login_set
-  changed_when: rhel9stig_272496_group_login_set.rc == 0
-  vars:
-    existing: >-
-      {{ rhel9stig_272496_login_map | default([])
-          | selectattr('login', 'equalto', '%' ~ rhel9stig_stigrule_272496_admin_group)
-          | list | first | default({}) }}
-    have_mapping: "{{ existing != {} }}"
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-    - >
-      existing.seuser | default('') != 'sysadm_u' or
-      existing.range | default('') != rhel9stig_stigrule_272496_mcs_range
-
-- name: stigrule_272496__map_additional_users_to_sysadm_u # noqa: command-instead-of-shell
-  ansible.builtin.shell:
-    cmd: >-
-      semanage login
-      {{ have_mapping | ternary('-m', '-a') }}
-      -s sysadm_u
-      -r {{ rhel9stig_stigrule_272496_mcs_range }}
-      {{ item }}
-  loop: "{{ rhel9stig_stigrule_272496_sysadm_u_selinux_users }}"
-  register: rhel9stig_272496_user_login_set
-  changed_when: rhel9stig_272496_user_login_set.rc == 0
-  vars:
-    existing: >-
-      {{ rhel9stig_272496_login_map | default([])
-          | selectattr('login', 'equalto', item)
-          | list | first | default({}) }}
-    have_mapping: "{{ existing != {} }}"
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_sysadm_u_selinux_users | length > 0
-    - >
-      existing.seuser | default('') != 'sysadm_u' or
-      existing.range | default('') != rhel9stig_stigrule_272496_mcs_range
-
-- name: Reset connection to reset user context
-  ansible.builtin.meta: reset_connection
-
-- name: stigrule_272496__set_default_selinux_user
-  community.general.selogin:
-    login: __default__
-    seuser: "{{ rhel9stig_stigrule_272496_default_selinux_user }}"
-    selevel: "{{ rhel9stig_stigrule_272496_default_mcs_range }}"
-    state: present
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_set_default_user_context
-
-- name: stigrule_272496__elevate_selinux_context_for_sudo
-  ansible.builtin.copy:
-    dest: /etc/sudoers.d/stig_selinux_context
-    content: |
-      %{{ rhel9stig_stigrule_272496_admin_group }} ALL=(ALL) TYPE={{ rhel9stig_stigrule_272496_selinux_type }} ROLE={{ rhel9stig_stigrule_272496_selinux_role }} ALL
-    owner: root
-    group: root
-    mode: '0440'
-    validate: /usr/sbin/visudo -cf %s
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-
-- name: stigrule_272496__report_no_admin_group_defined
-  ansible.builtin.debug:
-    msg: >-
-      rhel9stig_stigrule_272496_admin_group is empty, so no SELinux context
-      elevation rule was written. RHEL-09-431016 requires a designated sudoers
-      administrator group.
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length == 0
-
-- name: stigrule_272496__find_sudoers_d_files
+- name: stigrule_272496__find_sudoers_drop-ins
   ansible.builtin.find:
     paths: /etc/sudoers.d
     file_type: file
-    patterns: '*'
-  register: rhel9stig_272496_sudoers_d_files
+    patterns: '^[^.]*[^.~]$'
+    use_regex: true
+  register: rhel9stig_stigrule_found_sudoers
   when:
     - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
 
-- name: stigrule_272496__ensure_sudoers_file_exists_for_ansible_user
-  ansible.builtin.lineinfile:
-    path: /etc/sudoers.d/{{ ansible_user }}
-    line: "{{ ansible_user }} ALL=(ALL) TYPE={{ rhel9stig_stigrule_272496_selinux_type }} ROLE={{ rhel9stig_stigrule_272496_selinux_role }} ALL"
-    state: present
-    create: true
-    owner: root
-    group: root
-    mode: '0440'
-    validate: /usr/sbin/visudo -cf %s
+- name: stigrule_272496__build_file_list_and_exempt_pattern
+  ansible.builtin.set_fact:
+    rhel9stig_stigrule_paths: "{{ ['/etc/sudoers'] + rhel9stig_stigrule_found_sudoers.files | map(attribute='path') | list }}"
+    rhel9stig_stigrule_272496_exempt_principals_re: "{{ rhel9stig_stigrule_272496_exempt_principals | map('regex_escape') | join('|') | default('(?!)', true) }}"
   when:
     - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-    - >
-      rhel9stig_272496_sudoers_d_files.matched | int == 0 or
-      ansible_user not in (rhel9stig_272496_sudoers_d_files.files | map(attribute='path') | map('basename') | list)
 
-- name: stigrule_272496__sudo_availability_warning # noqa: ignore-errors
-  ansible.builtin.fail:
-    msg: |
-      No sudoers.d file matching ansible_user, {{ ansible_user }}, existed before this run.
-      A dedicated sudoers file has been created for {{ ansible_user }} to prevent losing
-      sudo access, since RHEL-09-431016 now requires TYPE={{ rhel9stig_stigrule_272496_selinux_type }}
-      ROLE={{ rhel9stig_stigrule_272496_selinux_role }} on every administrative sudoers line, and only
-      accounts mapped (directly, or via the {{ rhel9stig_stigrule_272496_admin_group }} group) to a
-      confined SELinux login user are permitted to elevate into that context.
-  ignore_errors: true
+- name: stigrule_272496__add_SELinux_context_to_sudoers
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: '^(\s*(?!Defaults|\w+_Alias\s|(?:{{ rhel9stig_stigrule_272496_exempt_principals_re }})\s)[^#@\s]\S*\s+[^=\s]+\s*=\s*(?:\([^)]*\)\s*)?)(?!.*\b(?:TYPE|ROLE)=)'
+    replace: '\1TYPE=sysadm_t ROLE=sysadm_r '
+    validate: visudo -cf %s
+  loop: "{{ rhel9stig_stigrule_paths }}"
   when:
     - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-    - >
-      rhel9stig_272496_sudoers_d_files.matched | int == 0 or
-      ansible_user not in (rhel9stig_272496_sudoers_d_files.files | map(attribute='path') | map('basename') | list)
 
-- name: stigrule_272496__sweep_etc_sudoers_type
-  ansible.builtin.lineinfile:
-    path: /etc/sudoers
-    backrefs: true
-    regexp: '^(?!#)(?!root\b)(?!%{{ rhel9stig_stigrule_272496_admin_group }}\b)(.*ALL=\(ALL[^)]*\))\s+(?!.*\bTYPE={{ rhel9stig_stigrule_272496_selinux_type }}\b)(.*)$'
-    line: '\1 TYPE={{ rhel9stig_stigrule_272496_selinux_type }} \2'
-    validate: /usr/sbin/visudo -cf %s
+- name: stigrule_272496__remove_SELinux_context_from_exempt_principals
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: '^(\s*(?:{{ rhel9stig_stigrule_272496_exempt_principals_re }})\s.*?)(?:TYPE=sysadm_t\s+ROLE=sysadm_r|ROLE=sysadm_r\s+TYPE=sysadm_t)\s*'
+    replace: '\1'
+    validate: visudo -cf %s
+  loop: "{{ rhel9stig_stigrule_paths }}"
   when:
     - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-
-- name: stigrule_272496__sweep_etc_sudoers_role
-  ansible.builtin.lineinfile:
-    path: /etc/sudoers
-    backrefs: true
-    regexp: '^(?!#)(?!root\b)(?!%{{ rhel9stig_stigrule_272496_admin_group }}\b)(.*ALL=\(ALL[^)]*\)(?:\s+TYPE={{ rhel9stig_stigrule_272496_selinux_type }})?)\s+(?!.*\bROLE={{ rhel9stig_stigrule_272496_selinux_role }}\b)(.*)$'
-    line: '\1 ROLE={{ rhel9stig_stigrule_272496_selinux_role }} \2'
-    validate: /usr/sbin/visudo -cf %s
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-
-- name: stigrule_272496__sweep_sudoers_d_type
-  ansible.builtin.lineinfile:
-    path: "{{ item.path }}"
-    backrefs: true
-    regexp: '^(?!#)(?!root\b)(?!%{{ rhel9stig_stigrule_272496_admin_group }}\b)(.*ALL=\(ALL[^)]*\))\s+(?!.*\bTYPE={{ rhel9stig_stigrule_272496_selinux_type }}\b)(.*)$'
-    line: '\1 TYPE={{ rhel9stig_stigrule_272496_selinux_type }} \2'
-    validate: /usr/sbin/visudo -cf %s
-  loop: "{{ rhel9stig_272496_sudoers_d_files.files | default([]) }}"
-  loop_control:
-    label: "{{ item.path }}"
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-    - item.path != '/etc/sudoers.d/stig_selinux_context'
-    - item.path not in rhel9stig_stigrule_272496_ignore_files
-
-- name: stigrule_272496__sweep_sudoers_d_role
-  ansible.builtin.lineinfile:
-    path: "{{ item.path }}"
-    backrefs: true
-    regexp: '^(?!#)(?!root\b)(?!%{{ rhel9stig_stigrule_272496_admin_group }}\b)(.*ALL=\(ALL[^)]*\)(?:\s+TYPE={{ rhel9stig_stigrule_272496_selinux_type }})?)\s+(?!.*\bROLE={{ rhel9stig_stigrule_272496_selinux_role }}\b)(.*)$'
-    line: '\1 ROLE={{ rhel9stig_stigrule_272496_selinux_role }} \2'
-    validate: /usr/sbin/visudo -cf %s
-  loop: "{{ rhel9stig_272496_sudoers_d_files.files | default([]) }}"
-  loop_control:
-    label: "{{ item.path }}"
-  when:
-    - rhel9stig_stigrule_272496_Manage
-    - rhel9stig_stigrule_272496_admin_group | length > 0
-    - item.path != '/etc/sudoers.d/stig_selinux_context'
-    - item.path not in rhel9stig_stigrule_272496_ignore_files
+    - rhel9stig_stigrule_272496_exempt_principals | length > 0

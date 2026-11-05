@@ -1,0 +1,44 @@
+- name: Reset resolved principals
+  ansible.builtin.set_fact:
+    rhel8stig_supp_getent_resolved: []
+
+- name: Look up principals as groups
+  ansible.builtin.getent:
+    database: group
+    key: "{{ item | regex_replace('^%', '') }}"
+    fail_key: false
+  loop: "{{ rhel_auth_classify_in }}"
+  register: rhel_auth_getent_grp
+
+- name: Look up principals as users
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ item | regex_replace('^%', '') }}"
+    fail_key: false
+  loop: "{{ rhel_auth_classify_in }}"
+  register: rhel_auth_getent_usr
+
+- name: Classify principals
+  vars:
+    _in: "{{ item.0.item }}"
+    _grp: "{{ item.0.ansible_facts.getent_group | default({}) | dict2items | rejectattr('value', 'none') | map(attribute='key') | list }}"
+    _usr: "{{ item.1.ansible_facts.getent_passwd | default({}) | dict2items | rejectattr('value', 'none') | map(attribute='key') | list }}"
+    _is_grp: "{{ _grp | length > 0 and (_in is match('%') or _usr | length == 0) }}"
+  block:
+    - name: Validate principal resolves to a single object type
+      ansible.builtin.assert:
+        that:
+          - _grp | length > 0 or _usr | length > 0
+          - _in is not match('%') or _grp | length > 0
+        fail_msg: "'{{ _in }}' not found, or prefixed with % but not a group"
+        quiet: true
+      loop: "{{ rhel_auth_getent_grp.results | zip(rhel_auth_getent_usr.results) | list }}"
+      loop_control:
+        label: "{{ _in }}"
+
+    - name: Build resolved principal list
+      ansible.builtin.set_fact:
+        rhel8stig_supp_getent_resolved: "{{ rhel8stig_supp_getent_resolved + [('%' if _is_grp else '') ~ (_grp if _is_grp else _usr) | first] }}"
+      loop: "{{ rhel_auth_getent_grp.results | zip(rhel_auth_getent_usr.results) | list }}"
+      loop_control:
+        label: "{{ _in }}"
